@@ -1,7 +1,7 @@
 {
   "name": "ring-link",
   "productName": "Ring-Link",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Ring-Link - 円形ランチャーメニュー",
   "main": "src/main/main.js",
   "author": "Tatsuo",

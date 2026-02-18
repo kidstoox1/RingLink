@@ -220,6 +220,55 @@
       pointer-events: none;
     }
     .clip-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    /* ===== ライトテーマ ===== */
+    body.light .sector-path {
+      fill: rgba(240, 243, 255, 0.92);
+      stroke: rgba(80, 110, 220, 0.2);
+    }
+    body.light .sector-path:hover, body.light .sector-path.active {
+      fill: rgba(80, 110, 220, 0.15);
+      stroke: rgba(80, 110, 220, 0.5);
+    }
+    body.light .sector-text { color: #556; }
+    body.light .sector-label.highlight .sector-text { color: #334; }
+    body.light .center-circle {
+      background: radial-gradient(circle, rgba(255,255,255,0.97), rgba(240,243,255,0.97));
+      border-color: rgba(80, 110, 220, 0.3);
+      box-shadow: 0 0 30px rgba(80, 110, 220, 0.08);
+    }
+    body.light .center-label { color: #4a6cf7; }
+    body.light .center-sublabel { color: #aab; }
+    body.light .tab-bar {
+      background: rgba(245, 247, 255, 0.95);
+      border-color: rgba(80, 110, 220, 0.15);
+    }
+    body.light .tab-btn:hover { background: rgba(80, 110, 220, 0.08); }
+    body.light .tab-btn.active {
+      background: rgba(80, 110, 220, 0.15);
+      box-shadow: 0 0 8px rgba(80, 110, 220, 0.1);
+    }
+    body.light .tab-num { color: #889; background: rgba(0,0,0,0.04); }
+    body.light .tab-btn.active .tab-num { color: #4a6cf7; background: rgba(74,108,247,0.12); }
+    body.light .tab-name { color: #778; }
+    body.light .tab-btn.active .tab-name { color: #4a6cf7; }
+    body.light .scroll-hint { color: rgba(0,0,0,0.2); }
+    body.light .clip-panel {
+      background: rgba(245, 247, 255, 0.95);
+      border-color: rgba(80, 110, 220, 0.15);
+    }
+    body.light .clip-title { color: #889; border-bottom-color: rgba(80,110,220,0.1); }
+    body.light .clip-item { border-left-color: transparent; }
+    body.light .clip-item:hover {
+      background: rgba(80, 110, 220, 0.08);
+      border-left-color: rgba(80, 110, 220, 0.4);
+    }
+    body.light .clip-item-num { color: #889; background: rgba(0,0,0,0.04); }
+    body.light .clip-item:hover .clip-item-num { color: #4a6cf7; background: rgba(74,108,247,0.1); }
+    body.light .clip-item-text { color: #556; }
+    body.light .clip-item:hover .clip-item-text { color: #223; }
+    body.light .clip-empty { color: rgba(0,0,0,0.2); }
+    body.light .clip-toast { background: rgba(74, 108, 247, 0.9); }
   </style>
 </head>
 <body>
@@ -262,6 +311,12 @@
 
     window.radialHub.menu.onShow(async (data) => {
       currentData = data;
+      // テーマ適用
+      if (data.theme === 'light') {
+        document.body.classList.add('light');
+      } else {
+        document.body.classList.remove('light');
+      }
       adjustLayout();
       render();
       loadClipboard();

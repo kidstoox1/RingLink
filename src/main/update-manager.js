@@ -10,6 +10,7 @@ const log = require('electron-log');
 class UpdateManager {
   constructor(mainWindow) {
     this.mainWindow = mainWindow;
+    this.manualCheck = false;
 
     // electron-updater のログをelectron-logに統合
     autoUpdater.logger = log;
@@ -37,13 +38,21 @@ class UpdateManager {
     // アップデートなし
     autoUpdater.on('update-not-available', (info) => {
       log.info('No updates available. Current:', info.version);
+      if (this.manualCheck) {
+        this.manualCheck = false;
+        dialog.showMessageBox({
+          type: 'info',
+          title: 'Ring-Link',
+          message: '最新バージョンです',
+          detail: `現在のバージョン: ${require('../../package.json').version}`,
+        });
+      }
     });
 
     // ダウンロード進捗
     autoUpdater.on('download-progress', (progress) => {
       const msg = `ダウンロード中: ${Math.round(progress.percent)}%`;
       log.info(msg);
-      // レンダラーに進捗通知
       if (this.mainWindow) {
         this.mainWindow.webContents.send('update:progress', progress);
       }
@@ -58,6 +67,15 @@ class UpdateManager {
     // エラー
     autoUpdater.on('error', (err) => {
       log.error('Update error:', err);
+      if (this.manualCheck) {
+        this.manualCheck = false;
+        dialog.showMessageBox({
+          type: 'warning',
+          title: 'Ring-Link',
+          message: 'アップデートの確認に失敗しました',
+          detail: 'インターネット接続を確認してください。',
+        });
+      }
     });
   }
 
@@ -66,19 +84,13 @@ class UpdateManager {
    * @param {boolean} manual - 手動チェックの場合true（結果を必ず表示）
    */
   async checkForUpdates(manual = false) {
+    this.manualCheck = manual;
     try {
-      const result = await autoUpdater.checkForUpdates();
-      if (manual && !result) {
-        dialog.showMessageBox({
-          type: 'info',
-          title: 'Ring-Link',
-          message: '最新バージョンです',
-          detail: `現在のバージョン: ${require('../../package.json').version}`,
-        });
-      }
+      await autoUpdater.checkForUpdates();
     } catch (err) {
       log.error('Update check failed:', err);
       if (manual) {
+        this.manualCheck = false;
         dialog.showMessageBox({
           type: 'warning',
           title: 'Ring-Link',

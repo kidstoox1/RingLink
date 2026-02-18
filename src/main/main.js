@@ -163,6 +163,7 @@ function showRadialMenu() {
   mainWindow.webContents.send('menu:show', {
     tabs: config.get('tabs'),
     currentTab: config.get('currentTab') || 0,
+    theme: (config.get('appearance') || {}).theme || 'dark',
   });
 }
 
@@ -248,6 +249,7 @@ function switchTab(direction) {
     mainWindow.webContents.send('menu:show', {
       tabs: tabs,
       currentTab: current,
+      theme: (config.get('appearance') || {}).theme || 'dark',
     });
   }
 }
@@ -394,7 +396,7 @@ function registerIpcHandlers() {
     if (tabIndex >= 0 && tabIndex < tabs.length) {
       config.set('currentTab', tabIndex);
       if (mainWindow) {
-        mainWindow.webContents.send('menu:show', { tabs, currentTab: tabIndex });
+        mainWindow.webContents.send('menu:show', { tabs, currentTab: tabIndex, theme: (config.get('appearance') || {}).theme || 'dark' });
       }
     }
   });
