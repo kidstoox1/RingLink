@@ -77,7 +77,7 @@ app.whenReady().then(async () => {
 // ===== ウィンドウ作成 =====
 function createMainWindow() {
   mainWindow = new BrowserWindow({
-    width: 620,
+    width: 560,
     height: 460,
     show: false,           // 初期非表示
     frame: false,          // フレームなし
