@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ring-Link - 設定</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-user-select:none;user-select:none}
+  input,textarea,select{-webkit-user-select:text;user-select:text}
+  body{background:#f4f5f7;font-family:'Segoe UI','Yu Gothic UI',sans-serif;color:#1a1a2e;min-height:100vh}
+  .header{display:flex;align-items:center;justify-content:space-between;padding:12px 20px;background:#fff;border-bottom:1px solid #e0e2e8;box-shadow:0 1px 3px rgba(0,0,0,0.04)}
+  .header-title{display:flex;align-items:center;gap:10px;font-size:15px;font-weight:600;color:#4a6cf7}
+  .header-right{display:flex;gap:8px}
+  .header-btn{background:#f0f1f4;border:1px solid #dcdee4;color:#555;padding:5px 12px;border-radius:6px;cursor:pointer;font-size:12px;display:flex;align-items:center;gap:4px;transition:all .15s}
+  .header-btn:hover{background:#e4e6ec;color:#333}
+  .header-btn.primary{background:#4a6cf7;border-color:#3b5de7;color:#fff}
+  .header-btn.primary:hover{background:#3b5de7}
+  .layout{display:flex;height:calc(100vh - 49px)}
+  .sidebar{width:200px;background:#fff;border-right:1px solid #e0e2e8;padding:12px 0;display:flex;flex-direction:column;flex-shrink:0}
+  .sidebar-title{font-size:9px;color:#999;text-transform:uppercase;letter-spacing:1.5px;padding:0 14px;margin-bottom:8px}
+  .tab-list{flex:1;overflow-y:auto}
+  .tab-item{display:flex;align-items:center;gap:8px;padding:8px 14px;cursor:pointer;transition:all .15s;border-left:3px solid transparent}
+  .tab-item:hover{background:#f0f2f8}
+  .tab-item.active{background:#eef1ff;border-left-color:#4a6cf7}
+  .tab-item-icon{font-size:16px}
+  .tab-item-name{flex:1;font-size:12px;color:#555}
+  .tab-item.active .tab-item-name{color:#4a6cf7;font-weight:500}
+  .tab-item-key{font-size:9px;color:#aaa;background:#f0f1f4;border:1px solid #e0e2e8;border-radius:3px;padding:1px 4px}
+  .tab-item.active .tab-item-key{color:#4a6cf7;background:#e0e6ff;border-color:#c0ccff}
+  .tab-add-btn{margin:6px 12px;padding:7px;border:1px dashed #ccc;border-radius:6px;text-align:center;font-size:11px;color:#999;cursor:pointer}
+  .tab-add-btn:hover{border-color:#4a6cf7;color:#4a6cf7;background:#f8f9ff}
+  .sidebar-nav{border-top:1px solid #e0e2e8;margin-top:auto;padding-top:8px}
+  .main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+  .edit-header{padding:14px 20px 0;display:flex;align-items:center;gap:14px;flex-shrink:0}
+  .edit-tab-icon{width:42px;height:42px;border-radius:10px;background:#eef1ff;border:1px solid #d0d8ff;display:flex;align-items:center;justify-content:center;font-size:22px;cursor:pointer}
+  .edit-tab-icon:hover{background:#e0e6ff}
+  .edit-tab-name-input{background:transparent;border:none;border-bottom:2px solid #e0e2e8;color:#1a1a2e;font-size:18px;font-weight:600;padding:2px 0;width:240px;outline:none}
+  .edit-tab-name-input:focus{border-bottom-color:#4a6cf7}
+  .edit-tab-desc{font-size:10px;color:#999;margin-top:2px}
+  .edit-tab-actions{display:flex;gap:6px;margin-left:auto}
+  .btn{padding:5px 10px;border-radius:5px;font-size:11px;cursor:pointer;transition:all .15s;border:1px solid;display:flex;align-items:center;gap:4px}
+  .btn-danger{background:#fff0f0;border-color:#fcc;color:#e44}
+  .btn-danger:hover{background:#ffe0e0}
+  .btn-secondary{background:#f0f1f4;border-color:#dcdee4;color:#666}
+  .btn-secondary:hover{background:#e4e6ec;color:#333}
+  .btn-primary{background:#4a6cf7;border-color:#3b5de7;color:#fff}
+  .btn-primary:hover{background:#3b5de7}
+  .edit-content{flex:1;overflow-y:auto;padding:14px 20px}
+  .content-label{font-size:10px;color:#999;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px}
+  .sector-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+  .sector-card{background:#fff;border:2px solid #e0e2e8;border-radius:10px;padding:12px 8px;cursor:pointer;transition:all .15s;position:relative;min-height:110px;display:flex;flex-direction:column;align-items:center;justify-content:center;box-shadow:0 1px 3px rgba(0,0,0,0.04)}
+  .sector-card:hover{border-color:#b0bcff;box-shadow:0 2px 8px rgba(74,108,247,0.1)}
+  .sector-card.editing{border-color:#4a6cf7;background:#f8f9ff;box-shadow:0 2px 12px rgba(74,108,247,0.15)}
+  .sector-card.drag-over{border-color:#4caf50;background:#f0faf0;border-style:dashed;transform:scale(1.03)}
+  .sector-card-num{position:absolute;top:6px;left:8px;font-size:9px;color:#bbb;font-weight:700}
+  .sector-card-pos{position:absolute;top:6px;right:8px;font-size:9px;color:#bbb}
+  .sector-card-icon{font-size:28px;margin:4px 0}
+  .sector-card-icon img{width:32px;height:32px;object-fit:contain}
+  .sector-card-label{font-size:11px;color:#555;margin-bottom:4px;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
+  .sector-card-type-wrap{text-align:center}
+  .sector-card-type{font-size:9px;padding:1px 6px;border-radius:3px;display:inline-block}
+  .type-launch{background:#e8f5e9;color:#2e7d32}.type-clipboard{background:#fff3e0;color:#e65100}.type-templates{background:#f3e5f5;color:#7b1fa2}.type-text{background:#e3f2fd;color:#1565c0}.type-screenshot{background:#fce4ec;color:#c62828}
+  .sector-card.empty{border-style:dashed;border-color:#ddd;background:#fafafa;box-shadow:none}
+  .sector-card.empty:hover{border-color:#4a6cf7;background:#f8f9ff}
+  .empty-icon{font-size:20px;color:#ccc}.empty-text{font-size:10px;color:#bbb;margin-top:2px}
+  .edit-panel{margin-top:12px;background:#fff;border:1px solid #d0d8ff;border-radius:10px;padding:16px;box-shadow:0 2px 8px rgba(74,108,247,0.08)}
+  .edit-panel-title{font-size:13px;font-weight:600;color:#4a6cf7;margin-bottom:12px}
+  .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .form-group{display:flex;flex-direction:column;gap:4px}
+  .form-label{font-size:10px;color:#888;text-transform:uppercase;letter-spacing:.5px}
+  .form-input{background:#f8f9fc;border:1px solid #dcdee4;border-radius:5px;color:#333;padding:6px 10px;font-size:12px;outline:none}
+  .form-input:focus{border-color:#4a6cf7;background:#fff}
+  .form-select{background:#f8f9fc;border:1px solid #dcdee4;border-radius:5px;color:#333;padding:6px 10px;font-size:12px;outline:none;cursor:pointer}
+  .form-textarea{background:#f8f9fc;border:1px solid #dcdee4;border-radius:5px;color:#333;padding:6px 10px;font-size:12px;outline:none;resize:vertical;min-height:60px;font-family:inherit}
+  .form-textarea:focus{border-color:#4a6cf7;background:#fff}
+  .panel-actions{display:flex;justify-content:flex-end;gap:6px;margin-top:12px;padding-top:10px;border-top:1px solid #eee}
+  .palette{width:270px;background:#fff;border-left:1px solid #e0e2e8;display:flex;flex-direction:column;flex-shrink:0;overflow:hidden}
+  .palette-header{padding:12px 14px;font-size:12px;font-weight:600;color:#4a6cf7;border-bottom:1px solid #e0e2e8}
+  .palette-tabs{display:flex;border-bottom:1px solid #e0e2e8}
+  .palette-tab{flex:1;padding:7px 0;text-align:center;font-size:11px;color:#999;cursor:pointer;border-bottom:2px solid transparent;transition:all .15s}
+  .palette-tab:hover{color:#555}
+  .palette-tab.active{color:#4a6cf7;border-bottom-color:#4a6cf7}
+  .palette-content{flex:1;overflow-y:auto;padding:8px}
+  .palette-item{display:flex;align-items:center;gap:8px;padding:8px 10px;margin-bottom:4px;background:#f8f9fc;border:1px solid #e8eaef;border-radius:7px;cursor:grab;transition:all .15s}
+  .palette-item:hover{background:#eef1ff;border-color:#c0ccff}
+  .palette-item.dragging{opacity:.4}
+  .palette-item-icon{font-size:18px;flex-shrink:0}
+  .palette-item-info{flex:1;min-width:0}
+  .palette-item-name{font-size:11px;color:#444;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .palette-item-desc{font-size:9px;color:#aaa;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px}
+  .palette-item-badge{font-size:8px;padding:1px 5px;border-radius:3px;flex-shrink:0}
+  .palette-section-title{font-size:9px;color:#999;text-transform:uppercase;letter-spacing:1px;padding:8px 4px 4px;display:flex;align-items:center;justify-content:space-between}
+  .palette-add-btn{font-size:9px;color:#4a6cf7;cursor:pointer;padding:2px 6px;border-radius:3px}
+  .palette-add-btn:hover{background:#eef1ff}
+  .screenshot-card{display:flex;align-items:center;gap:10px;padding:10px 12px;margin-bottom:6px;background:#fef5f7;border:1px solid #f8d0d8;border-radius:8px;cursor:grab;transition:all .15s}
+  .screenshot-card:hover{background:#fdeaef;border-color:#f0a0b0}
+  .screenshot-card-icon{font-size:22px}.screenshot-card-info{flex:1}.screenshot-card-name{font-size:12px;color:#c62828;font-weight:500}.screenshot-card-desc{font-size:9px;color:#b77;margin-top:1px}
+  .screenshot-card-badge{font-size:8px;padding:2px 6px;border-radius:3px;background:#fce4ec;color:#c62828}
+  .drop-zone{margin:4px 0 8px;padding:16px 10px;border:2px dashed #ccc;border-radius:8px;text-align:center;transition:all .2s;cursor:pointer}
+  .drop-zone:hover,.drop-zone.drag-active{border-color:#4caf50;background:#f0faf0}
+  .drop-zone-icon{font-size:28px;margin-bottom:4px}.drop-zone-main{font-size:11px;color:#777;margin-bottom:2px}.drop-zone-sub{font-size:9px;color:#aaa;line-height:1.5}
+  .dialog-btns{display:flex;gap:4px;margin:4px 0 8px}
+  .dialog-btn{flex:1;padding:8px;border:1px solid #dcdee4;border-radius:7px;background:#f8f9fc;cursor:pointer;text-align:center;font-size:11px;color:#555;transition:all .15s}
+  .dialog-btn:hover{background:#eef1ff;border-color:#4a6cf7;color:#4a6cf7}
+  .registered-item{display:flex;align-items:center;gap:8px;padding:7px 10px;margin-bottom:4px;background:#f8f9fc;border:1px solid #e8eaef;border-radius:7px;cursor:grab;transition:all .15s}
+  .registered-item:hover{background:#eef1ff;border-color:#c0ccff}
+  .registered-item-icon{font-size:16px;flex-shrink:0}.registered-item-icon img{width:20px;height:20px;object-fit:contain;vertical-align:middle}.registered-item-info{flex:1;min-width:0}
+  .registered-item-name{font-size:11px;color:#444;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .registered-item-path{font-size:8px;color:#aaa;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px;font-family:monospace}
+  .registered-item-del{background:none;border:none;color:#ccc;cursor:pointer;font-size:12px;padding:2px;border-radius:3px}
+  .registered-item-del:hover{color:#e44;background:#fff0f0}
+  .new-template-wrap{margin-top:6px;padding:8px;background:#f0f2ff;border:1px solid #d0d8ff;border-radius:7px;display:none}
+  .new-template-wrap.visible{display:block}
+  .new-template-input{width:100%;background:#fff;border:1px solid #dcdee4;border-radius:4px;color:#333;padding:6px 8px;font-size:11px;outline:none;resize:vertical;min-height:50px;font-family:inherit}
+  .new-template-actions{display:flex;gap:4px;margin-top:6px;justify-content:flex-end}
+  .drag-ghost{position:fixed;pointer-events:none;z-index:1000;background:#4a6cf7;border-radius:8px;padding:6px 12px;font-size:11px;color:#fff;box-shadow:0 4px 16px rgba(74,108,247,0.3);display:none;max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .toast{position:fixed;bottom:30px;left:50%;transform:translateX(-50%) translateY(20px);background:#4a6cf7;color:white;padding:8px 20px;border-radius:7px;font-size:12px;font-weight:500;opacity:0;transition:all .3s;pointer-events:none;z-index:200}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.3);z-index:100;display:none;align-items:center;justify-content:center}
+  .modal-overlay.visible{display:flex}
+  .modal{background:#fff;border:1px solid #d0d8ff;border-radius:12px;padding:20px;width:360px;box-shadow:0 20px 50px rgba(0,0,0,0.15)}
+  .modal-title{font-size:14px;font-weight:600;color:#4a6cf7;margin-bottom:12px}
+  .emoji-grid{display:grid;grid-template-columns:repeat(8,1fr);gap:3px;max-height:250px;overflow-y:auto}
+  .emoji-btn{width:34px;height:34px;border:none;background:#f8f9fc;border-radius:6px;font-size:18px;cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center}
+  .emoji-btn:hover{background:#eef1ff;transform:scale(1.15)}
+  .modal-actions{display:flex;justify-content:flex-end;gap:6px;margin-top:12px}
+  .browse-modal{width:440px}
+  .browse-input{width:100%;background:#f8f9fc;border:1px solid #dcdee4;border-radius:5px;color:#333;padding:7px 10px;font-size:12px;outline:none;font-family:monospace;margin-bottom:8px}
+  .browse-input:focus{border-color:#4a6cf7;background:#fff}
+  .browse-name-row{display:flex;gap:6px;align-items:center;margin-bottom:8px}
+  .browse-label{font-size:10px;color:#888;min-width:50px}
+  .preview-float{position:fixed;bottom:14px;right:284px;width:130px;height:130px;background:#fff;border:1px solid #e0e2e8;border-radius:14px;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 12px rgba(0,0,0,0.06)}
+  .preview-float-label{position:absolute;bottom:-18px;font-size:9px;color:#bbb;text-align:center;width:100%}
+  .preview-svg{width:110px;height:110px}
+  .preview-sector{fill:#f0f2f8;stroke:#d0d4e0;stroke-width:.8}.preview-sector.highlight{fill:#dce3ff;stroke:#4a6cf7}
+  .setting-row{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid #f0f1f4}
+  .setting-label-group{display:flex;flex-direction:column;gap:1px}.setting-label{font-size:12px;color:#444}.setting-desc{font-size:10px;color:#aaa}
+  .toggle{width:38px;height:20px;background:#ddd;border-radius:10px;cursor:pointer;position:relative;transition:background .3s}.toggle.on{background:#4a6cf7}
+  .toggle-knob{width:16px;height:16px;background:#fff;border-radius:50%;position:absolute;top:2px;left:2px;transition:all .3s;box-shadow:0 1px 3px rgba(0,0,0,0.15)}.toggle.on .toggle-knob{left:20px}
+  .setting-number{width:55px;background:#f8f9fc;border:1px solid #dcdee4;border-radius:5px;color:#333;padding:4px 6px;font-size:12px;text-align:center;outline:none}
+  .hotkey-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid #f0f1f4}
+  .hotkey-label{font-size:12px;color:#444;flex:1}
+  .hotkey-input{background:#f8f9fc;border:1px solid #dcdee4;border-radius:5px;color:#4a6cf7;padding:5px 12px;font-size:11px;font-weight:600;text-align:center;min-width:140px;cursor:pointer;transition:all .2s}
+  .hotkey-input:hover{border-color:#4a6cf7;background:#f0f2ff}
+  .hotkey-input.recording{border-color:#f90;color:#f90;animation:pulse 1s infinite}
+  @keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(255,153,0,.2)}50%{box-shadow:0 0 0 5px rgba(255,153,0,0)}}
+  .status-bar{padding:6px 20px;background:#fff;border-top:1px solid #e0e2e8;font-size:10px;color:#aaa;display:flex;justify-content:space-between}
+</style>
+</head>
+<body>
+<div class="header"><div class="header-title">⚙️ Ring-Link 設定</div><div class="header-right"><button class="header-btn" onclick="exportConfig()">📤 エクスポート</button><button class="header-btn" onclick="importConfig()">📥 インポート</button><button class="header-btn primary" onclick="window.close()">✕ 閉じる</button></div></div>
+<div class="layout">
+  <div class="sidebar"><div class="sidebar-title">業務タブ</div><div class="tab-list" id="tabList"></div><div class="tab-add-btn" onclick="addNewTab()">＋ タブを追加</div><div class="sidebar-nav"><div class="sidebar-title">全般設定</div><div class="tab-item" onclick="showView('hotkey')" id="navHotkey"><span class="tab-item-icon">⌨️</span><span class="tab-item-name">ホットキー</span></div><div class="tab-item" onclick="showView('clipboard')" id="navClipboard"><span class="tab-item-icon">📋</span><span class="tab-item-name">クリップボード</span></div><div class="tab-item" onclick="showView('appearance')" id="navAppearance"><span class="tab-item-icon">🎨</span><span class="tab-item-name">外観・一般</span></div></div></div>
+  <div class="main">
+    <div id="tabEditView"><div class="edit-header"><div class="edit-tab-icon" id="editTabIcon" onclick="openEmojiPicker('tab')">⚙️</div><div><input class="edit-tab-name-input" id="editTabName" value="" oninput="onTabNameChange()"><div class="edit-tab-desc">右パレットからドラッグ&ドロップでスロットに配置</div></div><div class="edit-tab-actions"><button class="btn btn-secondary" onclick="duplicateTab()">📄 複製</button><button class="btn btn-danger" onclick="deleteTab()">🗑️ 削除</button></div></div><div class="edit-content"><div class="content-label">🎯 メニュースロット（8個）</div><div id="sectorGridArea"></div></div></div>
+    <div id="hotkeyView" style="display:none"><div class="edit-header"><div style="font-size:28px">⌨️</div><div><div style="font-size:18px;font-weight:600">ホットキー設定</div><div class="edit-tab-desc">クリックしてキーを押すと登録</div></div></div><div class="edit-content" id="hotkeyContent"></div></div>
+    <div id="clipboardView" style="display:none"><div class="edit-header"><div style="font-size:28px">📋</div><div><div style="font-size:18px;font-weight:600">クリップボード設定</div></div></div><div class="edit-content" id="clipboardContent"></div></div>
+    <div id="appearanceView" style="display:none"><div class="edit-header"><div style="font-size:28px">🎨</div><div><div style="font-size:18px;font-weight:600">外観・一般設定</div></div></div><div class="edit-content" id="appearanceContent"></div></div>
+  </div>
+  <div class="palette" id="palettePanel"><div class="palette-header">🧩 パーツパレット</div><div class="palette-tabs"><div class="palette-tab active" data-pt="templates" onclick="switchPaletteTab(this)">定型文</div><div class="palette-tab" data-pt="launch" onclick="switchPaletteTab(this)">起動</div><div class="palette-tab" data-pt="system" onclick="switchPaletteTab(this)">システム</div></div><div class="palette-content" id="paletteContent"></div></div>
+</div>
+<div class="preview-float" id="previewFloat"><svg class="preview-svg" id="previewSvg" viewBox="0 0 110 110"></svg><div class="preview-float-label">プレビュー</div></div>
+<div class="drag-ghost" id="dragGhost"></div>
+<div class="modal-overlay" id="emojiModal"><div class="modal"><div class="modal-title">アイコンを選択</div><div class="emoji-grid" id="emojiGrid"></div><div class="modal-actions"><button class="btn btn-secondary" onclick="closeEmojiPicker()">キャンセル</button></div></div></div>
+<div class="modal-overlay" id="browseModal"><div class="modal browse-modal"><div class="modal-title">📂 ショートカット / フォルダを登録</div><div style="font-size:11px;color:#888;margin-bottom:12px">エクスプローラーからドラッグ&ドロップ、またはボタンで選択</div><div class="drop-zone" id="modalDropZone"><div class="drop-zone-icon">📁</div><div class="drop-zone-main">ファイル / フォルダをここにドロップ</div></div><div class="dialog-btns"><div class="dialog-btn" onclick="dialogSelectFile('modal')">📄 ファイルを選択</div><div class="dialog-btn" onclick="dialogSelectFolder('modal')">📂 フォルダを選択</div></div><div style="text-align:center;font-size:9px;color:#bbb;margin:4px 0">── または手動入力 ──</div><input class="browse-input" id="browsePathInput" placeholder="C:\Users\...\Desktop\app.lnk"><div class="browse-name-row"><span class="browse-label">表示名</span><input class="browse-input" id="browseNameInput" placeholder="アプリ名" style="margin:0"></div><div class="browse-name-row"><span class="browse-label">アイコン</span><div style="display:flex;align-items:center;gap:8px"><div id="browseIconPreview" style="width:32px;height:32px;border-radius:6px;background:#f0f2f8;border:1px solid #ddd;display:flex;align-items:center;justify-content:center;font-size:18px;cursor:pointer" onclick="openEmojiPicker('browse')">📁</div><span style="font-size:10px;color:#aaa">クリック変更</span></div></div><div class="modal-actions"><button class="btn btn-secondary" onclick="closeBrowseModal()">キャンセル</button><button class="btn btn-primary" onclick="registerFromBrowse()">✅ 登録</button></div></div></div>
+<div class="status-bar"><span id="statusText">読み込み中...</span><span id="statusVersion"></span></div>
+<div class="toast" id="toast"></div>
+<script>
+// Electronのデフォルトファイルドロップ挙動を完全に無効化（ページ遷移防止）
+document.addEventListener('dragover',e=>e.preventDefault(),true);
+document.addEventListener('drop',e=>e.preventDefault(),true);
+
+let configData=null,currentTabIndex=0,editingSectorIndex=-1,emojiTarget=null,currentPaletteTab='templates',browseIcon='📁';
+const posNames=['上','右上','右','右下','下','左下','左','左上'];
+const emojis=['📁','📂','📄','📋','📑','📝','📊','📈','📉','💰','💳','🏦','🧮','📧','💬','📅','🔍','⚙️','❓','🌐','📦','🚚','📸','🎨','🖨️','🌍','🎮','💻','🐙','🧪','📖','🎲','🎯','🔧','🔑','📌','⭐','❤️','🔔','🗂️','💼','🏠','☎️','🖥️','⌨️','🖱️','🔒','✅','❌','➕','✏️','🗑️','💡','🚀','🎵','🥽','📱','🖼️','📐','💎','📷','✂️','🗃️'];
+const systemItems=[{icon:'📋',label:'クリップボード履歴',type:'clipboard',target:''},{icon:'📑',label:'定型文一覧',type:'templates',target:''},{icon:'🔍',label:'ファイル検索',type:'launch',target:'Everything.exe'},{icon:'⚙️',label:'Ring-Link設定',type:'launch',target:'settings'},{icon:'🔒',label:'画面ロック',type:'launch',target:'rundll32.exe user32.dll,LockWorkStation'}];
+function iconHtml(iconOrData,size){size=size||28;if(iconOrData&&iconOrData.startsWith('data:image'))return '<img src="'+iconOrData+'" style="width:'+size+'px;height:'+size+'px;object-fit:contain">';return iconOrData||'📁';}
+const hotkeyDefs=[{key:'toggleMenu',label:'メニュー呼び出し'},{key:'clipboardHistory',label:'クリップボード履歴'},{key:'templateList',label:'定型文一覧'},{key:'screenshotClip',label:'範囲キャプチャ → CLP'},{key:'screenshotSave',label:'範囲キャプチャ → 保存'},{key:'openSettings',label:'設定画面を開く'},{key:'nextTab',label:'次のタブ'},{key:'prevTab',label:'前のタブ'}];
+
+async function init(){
+  try{configData=await window.radialHub.config.getAll();document.getElementById('statusText').textContent='設定読み込み完了';document.getElementById('statusVersion').textContent='v'+(configData.version||'?');}
+  catch(e){configData={tabs:[],hotkeys:{},clipboard:{},appearance:{},templates:[]};document.getElementById('statusText').textContent='読み込みエラー';}
+  if(!configData.tabs||!configData.tabs.length)configData.tabs=[{id:'tab-default',name:'共通',icon:'⚙️',items:Array(8).fill(null).map(()=>({icon:'➕',label:'未設定',type:'launch',target:''})),registered:[]}];
+  configData.tabs.forEach(t=>{if(!t.registered)t.registered=[];});
+  if(!configData.templates)configData.templates=[];
+  renderAll();buildEmojiGrid();
+}
+function renderAll(){renderTabList();renderEditView();renderPreview();renderPalette();}
+
+async function saveConfig(){try{await window.radialHub.config.set('tabs',configData.tabs);await window.radialHub.config.set('templates',configData.templates);document.getElementById('statusText').textContent='✅ 保存完了 '+new Date().toLocaleTimeString();}catch(e){document.getElementById('statusText').textContent='❌ 保存エラー';}}
+async function saveHotkeys(){await window.radialHub.config.set('hotkeys',configData.hotkeys);window.radialHub.hotkeys.reload();document.getElementById('statusText').textContent='✅ ホットキー保存完了';}
+async function exportConfig(){const r=await window.radialHub.config.export();if(r)showToast('📤 エクスポート完了');}
+async function importConfig(){const r=await window.radialHub.config.import();if(r){configData=await window.radialHub.config.getAll();configData.tabs.forEach(t=>{if(!t.registered)t.registered=[];});if(!configData.templates)configData.templates=[];currentTabIndex=0;editingSectorIndex=-1;renderAll();showToast('📥 インポート完了');}}
+
+function renderTabList(){const list=document.getElementById('tabList');list.innerHTML='';configData.tabs.forEach((tab,i)=>{const div=document.createElement('div');div.className='tab-item'+(i===currentTabIndex?' active':'');div.innerHTML='<span class="tab-item-icon">'+tab.icon+'</span><span class="tab-item-name">'+tab.name+'</span><span class="tab-item-key">'+(i+1)+'</span>';div.onclick=()=>{currentTabIndex=i;editingSectorIndex=-1;showView('tab');};list.appendChild(div);});document.querySelectorAll('#navHotkey,#navClipboard,#navAppearance').forEach(el=>el.classList.remove('active'));}
+function showView(view){['tabEditView','hotkeyView','clipboardView','appearanceView'].forEach(v=>document.getElementById(v).style.display='none');document.getElementById('palettePanel').style.display='';document.getElementById('previewFloat').style.display='';if(view==='tab'){document.getElementById('tabEditView').style.display='';renderTabList();renderEditView();renderPreview();renderPalette();}else{document.getElementById(view+'View').style.display='';document.getElementById('palettePanel').style.display='none';document.getElementById('previewFloat').style.display='none';document.querySelectorAll('.tab-item').forEach(el=>el.classList.remove('active'));const n=document.getElementById('nav'+view.charAt(0).toUpperCase()+view.slice(1));if(n)n.classList.add('active');if(view==='hotkey')renderHotkeyView();if(view==='clipboard')renderClipboardView();if(view==='appearance')renderAppearanceView();}}
+function renderEditView(){const tab=configData.tabs[currentTabIndex];if(!tab)return;document.getElementById('editTabIcon').textContent=tab.icon;document.getElementById('editTabName').value=tab.name;renderSectorGrid();}
+
+function renderSectorGrid(){const area=document.getElementById('sectorGridArea'),tab=configData.tabs[currentTabIndex];if(!tab)return;let html='<div class="sector-grid">';for(let i=0;i<8;i++){const item=tab.items[i],isEd=editingSectorIndex===i;if(item&&item.label!=='未設定'){const tc=item.type==='clipboard'?'type-clipboard':item.type==='templates'?'type-templates':item.type==='text'?'type-text':item.type==='screenshot_clip'||item.type==='screenshot_save'?'type-screenshot':'type-launch';const tl=item.type==='clipboard'?'クリップボード':item.type==='templates'?'定型文一覧':item.type==='text'?'定型文':item.type==='screenshot_clip'?'📷→CLP':item.type==='screenshot_save'?'📷→保存':'アプリ/ファイル';html+='<div class="sector-card '+(isEd?'editing':'')+'" data-index="'+i+'" onclick="selectSector('+i+')"><div class="sector-card-num">#'+(i+1)+'</div><div class="sector-card-pos">'+posNames[i]+'</div><div class="sector-card-icon">'+iconHtml(item.iconData||item.icon,32)+'</div><div class="sector-card-label">'+item.label+'</div><div class="sector-card-type-wrap"><span class="sector-card-type '+tc+'">'+tl+'</span></div></div>';}else{html+='<div class="sector-card empty" data-index="'+i+'" onclick="selectSector('+i+')"><div class="sector-card-num">#'+(i+1)+'</div><div class="sector-card-pos">'+posNames[i]+'</div><div class="empty-icon">＋</div><div class="empty-text">ドロップ or クリック</div></div>';}}html+='</div>';
+if(editingSectorIndex>=0){const item=tab.items[editingSectorIndex]||{icon:'⭐',label:'',type:'launch',target:''};if(!tab.items[editingSectorIndex])tab.items[editingSectorIndex]=item;const isText=item.type==='text',isSS=item.type==='screenshot_clip'||item.type==='screenshot_save';html+='<div class="edit-panel"><div class="edit-panel-title">✏️ #'+(editingSectorIndex+1)+'（'+posNames[editingSectorIndex]+'）</div><div class="form-grid"><div class="form-group"><div class="form-label">アイコン</div><div style="display:flex;align-items:center;gap:8px"><div style="width:36px;height:36px;border-radius:8px;background:#f0f2f8;border:1px solid #ddd;display:flex;align-items:center;justify-content:center;font-size:20px;cursor:pointer" onclick="openEmojiPicker('+editingSectorIndex+')">'+iconHtml(item.iconData||item.icon,28)+'</div><span style="font-size:10px;color:#aaa;cursor:pointer" onclick="openEmojiPicker('+editingSectorIndex+')">変更</span>'+(item.iconData?'<span style="font-size:9px;color:#e44;cursor:pointer;margin-left:4px" onclick="resetSectorIcon()">✕リセット</span>':'')+'</div></div><div class="form-group"><div class="form-label">表示名</div><input class="form-input" value="'+item.label+'" onchange="updateSector(\'label\',this.value)"></div><div class="form-group"><div class="form-label">アクション種類</div><select class="form-select" onchange="updateSector(\'type\',this.value);renderSectorGrid();"><option value="launch" '+(item.type==='launch'?'selected':'')+'>🚀 アプリ / ファイル / URL</option><option value="text" '+(item.type==='text'?'selected':'')+'>📝 定型文（直接貼り付け）</option><option value="clipboard" '+(item.type==='clipboard'?'selected':'')+'>📋 クリップボード履歴</option><option value="templates" '+(item.type==='templates'?'selected':'')+'>📑 定型文一覧</option><option value="screenshot_clip" '+(item.type==='screenshot_clip'?'selected':'')+'>📷 範囲キャプチャ → CLP</option><option value="screenshot_save" '+(item.type==='screenshot_save'?'selected':'')+'>💾 範囲キャプチャ → 保存</option></select></div><div class="form-group"><div class="form-label">'+(isText?'テキスト内容':isSS?(item.type==='screenshot_save'?'保存先フォルダ':'設定不要'):'ターゲット（パス/URL）')+'</div>'+(isText?'<textarea class="form-textarea" onchange="updateSector(\'target\',this.value)">'+(item.target||'')+'</textarea>':isSS&&item.type==='screenshot_save'?'<input class="form-input" value="'+(item.target||'')+'" onchange="updateSector(\'target\',this.value)" placeholder="D:\\Screenshots\\">':isSS?'<div style="font-size:11px;color:#999;padding:8px">クリップボードにコピー</div>':'<input class="form-input" value="'+(item.target||'')+'" onchange="updateSector(\'target\',this.value)" placeholder="C:\\... or https://..." '+(item.type!=='launch'?'disabled style="opacity:.4"':'')+'>')+'</div></div><div class="panel-actions"><button class="btn btn-danger" onclick="clearSector('+editingSectorIndex+')">🗑️ クリア</button><button class="btn btn-secondary" onclick="editingSectorIndex=-1;renderSectorGrid();">閉じる</button><button class="btn btn-primary" onclick="saveSector()">💾 保存</button></div></div>';}area.innerHTML=html;
+// セクターカードにドロップゾーン設定
+document.querySelectorAll('.sector-card').forEach(card=>{card.addEventListener('dragover',e=>{e.preventDefault();e.stopPropagation();card.classList.add('drag-over');});card.addEventListener('dragleave',()=>card.classList.remove('drag-over'));card.addEventListener('drop',async e=>{e.preventDefault();e.stopPropagation();card.classList.remove('drag-over');const files=e.dataTransfer.files;if(files.length>0){const idx=parseInt(card.dataset.index);if(isNaN(idx))return;const f=files[0],fpath=f.path||f.name;try{const r=await window.radialHub.file.resolveDrop(fpath);configData.tabs[currentTabIndex].items[idx]={icon:'📁',iconData:r.iconData||'',label:r.name||f.name.replace(/\.[^.]+$/,''),type:'launch',target:r.target||fpath};}catch(err){configData.tabs[currentTabIndex].items[idx]={icon:'📁',label:f.name.replace(/\.[^.]+$/,''),type:'launch',target:fpath};}editingSectorIndex=idx;renderSectorGrid();renderPreview();saveConfig();showToast('✅ #'+(idx+1)+'に配置');}});});}
+
+function selectSector(i){editingSectorIndex=(editingSectorIndex===i)?-1:i;renderSectorGrid();renderPreview();}
+function updateSector(k,v){if(editingSectorIndex>=0)configData.tabs[currentTabIndex].items[editingSectorIndex][k]=v;}
+function clearSector(i){configData.tabs[currentTabIndex].items[i]={icon:'➕',label:'未設定',type:'launch',target:''};editingSectorIndex=-1;renderSectorGrid();renderPreview();saveConfig();showToast('🗑️ クリア');}
+function saveSector(){editingSectorIndex=-1;renderSectorGrid();renderPreview();saveConfig();showToast('✅ 保存しました');}
+
+function renderHotkeyView(){const c=document.getElementById('hotkeyContent'),hk=configData.hotkeys||{};c.innerHTML=hotkeyDefs.map(d=>'<div class="hotkey-row"><span class="hotkey-label">'+d.label+'</span><div class="hotkey-input" data-key="'+d.key+'" onclick="recordHotkey(this)">'+(hk[d.key]||'未設定')+'</div></div>').join('');}
+function recordHotkey(el){el.classList.add('recording');el.textContent='キーを入力...';const h=e=>{e.preventDefault();const p=[];if(e.ctrlKey)p.push('Ctrl');if(e.shiftKey)p.push('Shift');if(e.altKey)p.push('Alt');if(e.key&&!['Control','Shift','Alt'].includes(e.key))p.push(e.key===' '?'Space':e.key.length===1?e.key.toUpperCase():e.key);if(p.length>1||(!e.ctrlKey&&!e.shiftKey&&!e.altKey&&p.length===1)){const combo=p.join('+');el.textContent=combo;el.classList.remove('recording');configData.hotkeys[el.dataset.key]=combo;saveHotkeys();document.removeEventListener('keydown',h);}};document.addEventListener('keydown',h);}
+
+function renderClipboardView(){const c=document.getElementById('clipboardContent'),cl=configData.clipboard||{};c.innerHTML='<div class="setting-row"><div class="setting-label-group"><span class="setting-label">クリップボード監視</span><span class="setting-desc">コピー内容を自動保存</span></div><div class="toggle '+(cl.enabled!==false?'on':'')+'" onclick="toggleClipSetting(this,\'enabled\')"><div class="toggle-knob"></div></div></div><div class="setting-row"><div class="setting-label-group"><span class="setting-label">最大保存件数</span></div><input class="setting-number" type="number" value="'+(cl.maxHistory||100)+'" min="10" max="1000" onchange="configData.clipboard.maxHistory=parseInt(this.value);saveClipSettings()"></div><div class="setting-row"><div class="setting-label-group"><span class="setting-label">画像も保存</span></div><div class="toggle '+(cl.saveImages!==false?'on':'')+'" onclick="toggleClipSetting(this,\'saveImages\')"><div class="toggle-knob"></div></div></div><div class="setting-row"><div class="setting-label-group"><span class="setting-label">パスワード除外</span></div><div class="toggle '+(cl.excludePasswords!==false?'on':'')+'" onclick="toggleClipSetting(this,\'excludePasswords\')"><div class="toggle-knob"></div></div></div>';}
+function toggleClipSetting(el,key){el.classList.toggle('on');if(!configData.clipboard)configData.clipboard={};configData.clipboard[key]=el.classList.contains('on');saveClipSettings();}
+async function saveClipSettings(){await window.radialHub.config.set('clipboard',configData.clipboard);document.getElementById('statusText').textContent='✅ クリップボード設定保存';}
+
+async function renderAppearanceView(){
+  const c=document.getElementById('appearanceContent'),ap=configData.appearance||{};
+  let autoStart=true;try{autoStart=await window.radialHub.autoLaunch.get();}catch(e){}
+  c.innerHTML='<div style="font-size:11px;color:#4a6cf7;font-weight:600;margin-bottom:8px">🚀 起動</div><div class="setting-row"><div class="setting-label-group"><span class="setting-label">PC起動時に自動起動</span><span class="setting-desc">スタートアップに登録</span></div><div class="toggle '+(autoStart?'on':'')+'" onclick="toggleAutoStart(this)"><div class="toggle-knob"></div></div></div><div style="font-size:11px;color:#4a6cf7;font-weight:600;margin:16px 0 8px">🎨 外観</div><div class="setting-row"><div class="setting-label-group"><span class="setting-label">メニューサイズ (px)</span></div><input class="setting-number" type="number" value="'+(ap.menuSize||380)+'" step="20" onchange="configData.appearance.menuSize=parseInt(this.value);saveAppSettings()"></div><div class="setting-row"><div class="setting-label-group"><span class="setting-label">透過度 %</span></div><input class="setting-number" type="number" value="'+(ap.opacity||95)+'" min="50" max="100" onchange="configData.appearance.opacity=parseInt(this.value);saveAppSettings()"></div><div class="setting-row"><div class="setting-label-group"><span class="setting-label">アニメーション</span></div><div class="toggle '+(ap.animation!==false?'on':'')+'" onclick="toggleAppSetting(this,\'animation\')"><div class="toggle-knob"></div></div></div>';
+}
+async function toggleAutoStart(el){el.classList.toggle('on');const enabled=el.classList.contains('on');await window.radialHub.autoLaunch.set(enabled);document.getElementById('statusText').textContent=enabled?'✅ スタートアップ有効':'⚫ スタートアップ無効';}
+function toggleAppSetting(el,key){el.classList.toggle('on');if(!configData.appearance)configData.appearance={};configData.appearance[key]=el.classList.contains('on');saveAppSettings();}
+async function saveAppSettings(){await window.radialHub.config.set('appearance',configData.appearance);document.getElementById('statusText').textContent='✅ 外観設定保存';}
+
+function switchPaletteTab(el){document.querySelectorAll('.palette-tab').forEach(t=>t.classList.remove('active'));el.classList.add('active');currentPaletteTab=el.dataset.pt;renderPalette();}
+function renderPalette(){const c=document.getElementById('paletteContent');let html='';
+if(currentPaletteTab==='templates'){html+='<div class="palette-section-title">共通定型文 <span class="palette-add-btn" onclick="toggleNewTemplate()">＋ 追加</span></div>';html+='<div class="new-template-wrap" id="newTemplateWrap"><textarea class="new-template-input" id="newTemplateInput" placeholder="新しい定型文を入力..."></textarea><div class="new-template-actions"><button class="btn btn-secondary" onclick="toggleNewTemplate()" style="padding:3px 8px;font-size:10px">取消</button><button class="btn btn-primary" onclick="addTemplate()" style="padding:3px 8px;font-size:10px">追加</button></div></div>';(configData.templates||[]).forEach((tpl,i)=>{const short=tpl.length>24?tpl.substring(0,24)+'...':tpl;const obj=JSON.stringify({icon:'📝',label:short,type:'text',target:tpl}).replace(/"/g,'&quot;');html+='<div class="palette-item" onmousedown="startDrag(event,'+obj+')"><span class="palette-item-icon">📝</span><div class="palette-item-info"><div class="palette-item-name">'+short+'</div><div class="palette-item-desc">ドラッグでスロットに配置</div></div><button onclick="event.stopPropagation();deleteTemplate('+i+')" style="background:none;border:none;color:#ccc;cursor:pointer;font-size:12px">✕</button></div>';});if(!(configData.templates||[]).length)html+='<div style="text-align:center;padding:16px;color:#bbb;font-size:11px">定型文がありません</div>';}
+else if(currentPaletteTab==='launch'){const ssClip=JSON.stringify({icon:'✂️',label:'範囲キャプチャ→CLP',type:'screenshot_clip',target:''}).replace(/"/g,'&quot;');const ssSave=JSON.stringify({icon:'💾',label:'範囲キャプチャ→保存',type:'screenshot_save',target:'D:\\Screenshots\\'}).replace(/"/g,'&quot;');html+='<div class="palette-section-title">📷 スクリーンショット</div>';html+='<div class="screenshot-card" onmousedown="startDrag(event,'+ssClip+')"><div class="screenshot-card-icon">✂️</div><div class="screenshot-card-info"><div class="screenshot-card-name">範囲キャプチャ → CLP</div><div class="screenshot-card-desc">Ctrl+Vで貼り付け</div></div><span class="screenshot-card-badge">CLP</span></div>';html+='<div class="screenshot-card" onmousedown="startDrag(event,'+ssSave+')"><div class="screenshot-card-icon">💾</div><div class="screenshot-card-info"><div class="screenshot-card-name">範囲キャプチャ → 保存</div><div class="screenshot-card-desc">指定フォルダに保存</div></div><span class="screenshot-card-badge">FILE</span></div>';const tab=configData.tabs[currentTabIndex];html+='<div class="palette-section-title" style="margin-top:8px">登録済みショートカット <span class="palette-add-btn" onclick="openBrowseModal()">＋ 登録</span></div>';html+='<div class="drop-zone" id="paletteDropZone"><div class="drop-zone-icon">📂</div><div class="drop-zone-main">ショートカット / フォルダをドロップ</div></div>';html+='<div class="dialog-btns"><div class="dialog-btn" onclick="dialogSelectFile(\'palette\')">📄 ファイルを選択</div><div class="dialog-btn" onclick="dialogSelectFolder(\'palette\')">📂 フォルダを選択</div></div>';(tab.registered||[]).forEach((reg,i)=>{html+='<div class="registered-item" onmousedown="startDragRegistered(event,'+i+')"><span class="registered-item-icon">'+iconHtml(reg.iconData||reg.icon,20)+'</span><div class="registered-item-info"><div class="registered-item-name">'+reg.label+'</div><div class="registered-item-path">'+reg.path+'</div></div><button class="registered-item-del" onclick="event.stopPropagation();deleteRegistered('+i+')">✕</button></div>';});}
+else if(currentPaletteTab==='system'){html+='<div class="palette-section-title">システム機能</div>';systemItems.forEach(item=>{const obj=JSON.stringify(item).replace(/"/g,'&quot;');const tc=item.type==='clipboard'?'type-clipboard':item.type==='templates'?'type-templates':'type-launch';const tl=item.type==='clipboard'?'CLP':item.type==='templates'?'一覧':'SYS';html+='<div class="palette-item" onmousedown="startDrag(event,'+obj+')"><span class="palette-item-icon">'+item.icon+'</span><div class="palette-item-info"><div class="palette-item-name">'+item.label+'</div><div class="palette-item-desc">'+(item.target||'組み込み機能')+'</div></div><span class="palette-item-badge '+tc+'">'+tl+'</span></div>';});}
+c.innerHTML=html;setTimeout(setupDropZones,0);}
+
+function setupDropZones(){['paletteDropZone','modalDropZone'].forEach(id=>{const dz=document.getElementById(id);if(!dz)return;dz.addEventListener('dragover',e=>{e.preventDefault();e.stopPropagation();dz.classList.add('drag-active');});dz.addEventListener('dragleave',()=>dz.classList.remove('drag-active'));dz.addEventListener('drop',async e=>{e.preventDefault();e.stopPropagation();dz.classList.remove('drag-active');const files=e.dataTransfer.files;if(files.length>0){const f=files[0],fpath=f.path||f.name;if(id==='modalDropZone'){document.getElementById('browsePathInput').value=fpath;document.getElementById('browseNameInput').value=f.name.replace(/\.[^.]+$/,'');}else{try{const r=await window.radialHub.file.resolveDrop(fpath);registerShortcut('📁',r.name||f.name.replace(/\.[^.]+$/,''),r.target||fpath,r.iconData);}catch(e){registerShortcut('📁',f.name.replace(/\.[^.]+$/,''),fpath);}}}});});}
+
+// ファイル/フォルダ選択ダイアログ
+async function dialogSelectFile(mode){
+  const r=await window.radialHub.dialog.openFile();
+  if(!r)return;
+  if(mode==='modal'){document.getElementById('browsePathInput').value=r.target;document.getElementById('browseNameInput').value=r.name;}
+  else{registerShortcut('📁',r.name,r.target,r.iconData);}
+}
+async function dialogSelectFolder(mode){
+  const r=await window.radialHub.dialog.openFolder();
+  if(!r)return;
+  if(mode==='modal'){document.getElementById('browsePathInput').value=r.target;document.getElementById('browseNameInput').value=r.name;}
+  else{registerShortcut('📂',r.name,r.target,r.iconData);}
+}
+
+function toggleNewTemplate(){const w=document.getElementById('newTemplateWrap');if(w)w.classList.toggle('visible');}
+function addTemplate(){const inp=document.getElementById('newTemplateInput');if(!inp||!inp.value.trim())return;if(!configData.templates)configData.templates=[];configData.templates.push(inp.value.trim());inp.value='';toggleNewTemplate();renderPalette();saveConfig();showToast('📝 追加');}
+function deleteTemplate(i){configData.templates.splice(i,1);renderPalette();saveConfig();}
+function registerShortcut(icon,label,path,iconData){if(!configData.tabs[currentTabIndex].registered)configData.tabs[currentTabIndex].registered=[];configData.tabs[currentTabIndex].registered.push({icon:icon,label,path,iconData:iconData||''});renderPalette();saveConfig();showToast('✅ 「'+label+'」を登録');}
+function deleteRegistered(i){configData.tabs[currentTabIndex].registered.splice(i,1);renderPalette();saveConfig();}
+function openBrowseModal(){browseIcon='📁';document.getElementById('browseIconPreview').textContent=browseIcon;document.getElementById('browsePathInput').value='';document.getElementById('browseNameInput').value='';document.getElementById('browseModal').classList.add('visible');setTimeout(setupDropZones,0);}
+function closeBrowseModal(){document.getElementById('browseModal').classList.remove('visible');}
+function registerFromBrowse(){const p=document.getElementById('browsePathInput').value.trim(),n=document.getElementById('browseNameInput').value.trim()||'新しいショートカット';if(!p){showToast('⚠️ パスを入力');return;}registerShortcut(browseIcon,n,p);closeBrowseModal();}
+function onTabNameChange(){configData.tabs[currentTabIndex].name=document.getElementById('editTabName').value;renderTabList();saveConfig();}
+function addNewTab(){configData.tabs.push({id:'tab'+Date.now(),name:'新しいタブ',icon:'📌',items:Array(8).fill(null).map(()=>({icon:'➕',label:'未設定',type:'launch',target:''})),registered:[]});currentTabIndex=configData.tabs.length-1;editingSectorIndex=-1;renderAll();saveConfig();showToast('➕ タブ追加');}
+function duplicateTab(){const c=JSON.parse(JSON.stringify(configData.tabs[currentTabIndex]));c.id='tab'+Date.now();c.name+=' (コピー)';configData.tabs.splice(currentTabIndex+1,0,c);currentTabIndex++;renderAll();saveConfig();showToast('📄 複製');}
+function deleteTab(){if(configData.tabs.length<=1){showToast('⚠️ 最後のタブ');return;}configData.tabs.splice(currentTabIndex,1);if(currentTabIndex>=configData.tabs.length)currentTabIndex--;editingSectorIndex=-1;renderAll();saveConfig();showToast('🗑️ 削除');}
+let dragData=null;const ghost=document.getElementById('dragGhost');
+function startDragRegistered(e,regIdx){const tab=configData.tabs[currentTabIndex];const reg=tab.registered[regIdx];if(!reg)return;const data={icon:reg.icon||'📁',iconData:reg.iconData||'',label:reg.label,type:'launch',target:reg.path};startDrag(e,data);}
+function startDrag(e,data){e.preventDefault();dragData=data;ghost.textContent=(data.icon&&data.icon.startsWith('data:')?'📁':data.icon)+' '+data.label;ghost.style.display='block';moveGhost(e);document.addEventListener('mousemove',moveGhost);document.addEventListener('mouseup',endDrag);const el=e.target.closest('.palette-item,.registered-item,.screenshot-card');if(el)el.classList.add('dragging');}
+function moveGhost(e){ghost.style.left=(e.clientX+12)+'px';ghost.style.top=(e.clientY-10)+'px';}
+function endDrag(e){ghost.style.display='none';document.removeEventListener('mousemove',moveGhost);document.removeEventListener('mouseup',endDrag);document.querySelectorAll('.dragging').forEach(el=>el.classList.remove('dragging'));document.querySelectorAll('.sector-card.drag-over').forEach(el=>el.classList.remove('drag-over'));const t=document.elementFromPoint(e.clientX,e.clientY),card=t?t.closest('.sector-card'):null;if(card&&dragData){const idx=parseInt(card.dataset.index);if(!isNaN(idx)){configData.tabs[currentTabIndex].items[idx]={...dragData};editingSectorIndex=idx;renderSectorGrid();renderPreview();saveConfig();showToast('✅ #'+(idx+1)+'（'+posNames[idx]+'）に配置');}}dragData=null;}
+document.addEventListener('mousemove',e=>{if(!dragData)return;document.querySelectorAll('.sector-card').forEach(card=>{const r=card.getBoundingClientRect();card.classList.toggle('drag-over',e.clientX>=r.left&&e.clientX<=r.right&&e.clientY>=r.top&&e.clientY<=r.bottom);});});
+function buildEmojiGrid(){const g=document.getElementById('emojiGrid');emojis.forEach(e=>{const b=document.createElement('button');b.className='emoji-btn';b.textContent=e;b.onclick=()=>selectEmoji(e);g.appendChild(b);});}
+function openEmojiPicker(t){emojiTarget=t;document.getElementById('emojiModal').classList.add('visible');}
+function closeEmojiPicker(){document.getElementById('emojiModal').classList.remove('visible');}
+function resetSectorIcon(){if(typeof editingSectorIndex==='number'&&editingSectorIndex>=0){configData.tabs[currentTabIndex].items[editingSectorIndex].iconData='';renderSectorGrid();renderPreview();saveConfig();showToast('🔄 アイコンリセット');}}
+function selectEmoji(emoji){if(emojiTarget==='tab')configData.tabs[currentTabIndex].icon=emoji;else if(emojiTarget==='browse'){browseIcon=emoji;document.getElementById('browseIconPreview').textContent=emoji;}else if(typeof emojiTarget==='number'){configData.tabs[currentTabIndex].items[emojiTarget].icon=emoji;configData.tabs[currentTabIndex].items[emojiTarget].iconData='';}closeEmojiPicker();renderAll();saveConfig();}
+function renderPreview(){const svg=document.getElementById('previewSvg');svg.innerHTML='';const cx=55,cy=55,inner=16,outer=50,tab=configData.tabs[currentTabIndex];if(!tab)return;tab.items.forEach((item,i)=>{const sa=(i*45-90-22.5)*Math.PI/180,ea=((i+1)*45-90-22.5)*Math.PI/180,ma=(sa+ea)/2;const d='M '+(cx+inner*Math.cos(sa))+' '+(cy+inner*Math.sin(sa))+' L '+(cx+outer*Math.cos(sa))+' '+(cy+outer*Math.sin(sa))+' A '+outer+' '+outer+' 0 0 1 '+(cx+outer*Math.cos(ea))+' '+(cy+outer*Math.sin(ea))+' L '+(cx+inner*Math.cos(ea))+' '+(cy+inner*Math.sin(ea))+' A '+inner+' '+inner+' 0 0 0 '+(cx+inner*Math.cos(sa))+' '+(cy+inner*Math.sin(sa))+' Z';const p=document.createElementNS('http://www.w3.org/2000/svg','path');p.setAttribute('d',d);p.setAttribute('class','preview-sector'+(i===editingSectorIndex?' highlight':''));svg.appendChild(p);const t=document.createElementNS('http://www.w3.org/2000/svg','text');t.setAttribute('x',cx+35*Math.cos(ma));t.setAttribute('y',cy+35*Math.sin(ma));t.setAttribute('text-anchor','middle');t.setAttribute('dominant-baseline','central');t.setAttribute('font-size','11');t.textContent=item.icon;svg.appendChild(t);});}
+function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),1800);}
+init();
+</script>
+</body>
+</html>

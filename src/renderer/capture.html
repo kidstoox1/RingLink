@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>Ring-Link - Screen Capture</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body {
+      width: 100vw; height: 100vh;
+      background: rgba(0, 0, 0, 0.3);
+      cursor: crosshair;
+      overflow: hidden;
+      user-select: none;
+    }
+    .selection {
+      position: fixed;
+      border: 2px solid #7ca4ff;
+      background: rgba(100, 140, 255, 0.1);
+      display: none;
+      z-index: 10;
+    }
+    .size-label {
+      position: fixed;
+      background: rgba(0,0,0,0.7);
+      color: #7ca4ff;
+      font-size: 12px;
+      font-family: 'Segoe UI', sans-serif;
+      padding: 3px 8px;
+      border-radius: 4px;
+      z-index: 20;
+      display: none;
+    }
+    .hint {
+      position: fixed;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      color: rgba(255,255,255,0.6);
+      font-size: 16px;
+      font-family: 'Segoe UI', 'Yu Gothic UI', sans-serif;
+      pointer-events: none;
+      text-align: center;
+    }
+    .hint kbd {
+      background: rgba(255,255,255,0.15);
+      border: 1px solid rgba(255,255,255,0.3);
+      border-radius: 4px;
+      padding: 2px 8px;
+    }
+  </style>
+</head>
+<body>
+  <div class="selection" id="selection"></div>
+  <div class="size-label" id="sizeLabel"></div>
+  <div class="hint" id="hint">
+    ドラッグで範囲を選択<br>
+    <kbd>Esc</kbd> でキャンセル
+  </div>
+
+  <script>
+    let captureMode = 'clipboard';
+    let isDrawing = false;
+    let startX = 0, startY = 0;
+    const selection = document.getElementById('selection');
+    const sizeLabel = document.getElementById('sizeLabel');
+    const hint = document.getElementById('hint');
+
+    // メインプロセスからモード受信
+    window.radialHub.capture.onStart((data) => {
+      captureMode = data.mode;
+    });
+
+    document.addEventListener('mousedown', (e) => {
+      isDrawing = true;
+      startX = e.clientX;
+      startY = e.clientY;
+      selection.style.left = startX + 'px';
+      selection.style.top = startY + 'px';
+      selection.style.width = '0';
+      selection.style.height = '0';
+      selection.style.display = 'block';
+      sizeLabel.style.display = 'block';
+      hint.style.display = 'none';
+    });
+
+    document.addEventListener('mousemove', (e) => {
+      if (!isDrawing) return;
+      const x = Math.min(e.clientX, startX);
+      const y = Math.min(e.clientY, startY);
+      const w = Math.abs(e.clientX - startX);
+      const h = Math.abs(e.clientY - startY);
+
+      selection.style.left = x + 'px';
+      selection.style.top = y + 'px';
+      selection.style.width = w + 'px';
+      selection.style.height = h + 'px';
+
+      sizeLabel.textContent = `${w} × ${h}`;
+      sizeLabel.style.left = (x + w + 8) + 'px';
+      sizeLabel.style.top = (y - 24) + 'px';
+    });
+
+    document.addEventListener('mouseup', (e) => {
+      if (!isDrawing) return;
+      isDrawing = false;
+
+      const x = Math.min(e.clientX, startX);
+      const y = Math.min(e.clientY, startY);
+      const w = Math.abs(e.clientX - startX);
+      const h = Math.abs(e.clientY - startY);
+
+      if (w > 5 && h > 5) {
+        // キャプチャ実行をメインプロセスに依頼（ウィンドウ閉じもmain.js側で行う）
+        window.radialHub.capture.complete({
+          mode: captureMode,
+          bounds: { x, y, width: w, height: h },
+        });
+      } else {
+        // 範囲が小さすぎる場合はキャンセル扱い
+        window.close();
+      }
+    });
+
+    // Escキーでキャンセル
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        window.close();
+      }
+    });
+  </script>
+</body>
+</html>
