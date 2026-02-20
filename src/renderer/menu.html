@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ring-Link Menu</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { background: transparent; overflow: hidden; }
+    body {
+      font-family: 'Segoe UI', 'Yu Gothic UI', sans-serif;
+      color: #e0e0e0;
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      user-select: none;
+      -webkit-app-region: no-drag;
+    }
+
+    .outer-layout {
+      display: flex;
+      align-items: center;
+      gap: 0px;
+    }
+
+    .menu-wrapper {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+    }
+
+    .menu-container {
+      position: relative;
+      width: var(--menu-size, 360px);
+      height: var(--menu-size, 360px);
+    }
+
+    .radial-svg { width: 100%; height: 100%; }
+    .sector-path {
+      fill: rgba(20, 20, 50, 0.85);
+      stroke: rgba(100, 140, 255, 0.15);
+      stroke-width: 1;
+      cursor: pointer;
+      transition: fill 0.15s, stroke 0.15s;
+    }
+    .sector-path:hover, .sector-path.active {
+      fill: rgba(100, 140, 255, 0.25);
+      stroke: rgba(100, 140, 255, 0.6);
+    }
+
+    .label-overlay {
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+      pointer-events: none;
+    }
+    .sector-label {
+      position: absolute;
+      display: flex; flex-direction: column; align-items: center; gap: 4px;
+      pointer-events: none;
+      transition: transform 0.15s;
+    }
+    .sector-label.highlight { transform: translate(-50%, -50%) scale(1.15); }
+    .sector-icon { font-size: 26px; filter: drop-shadow(0 0 8px rgba(100, 140, 255, 0.4)); }
+    .sector-icon img { width: 30px; height: 30px; object-fit: contain; filter: drop-shadow(0 0 8px rgba(100, 140, 255, 0.4)); }
+    .sector-text {
+      font-size: 10px; color: #888; white-space: nowrap;
+      text-shadow: 0 1px 4px rgba(0,0,0,0.9);
+    }
+    .sector-label.highlight .sector-text { color: #cde; }
+
+    .center-circle {
+      position: absolute; top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      width: 76px; height: 76px; border-radius: 50%;
+      background: radial-gradient(circle, rgba(30,30,60,0.95), rgba(20,20,40,0.95));
+      border: 2px solid rgba(100, 140, 255, 0.3);
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      z-index: 10;
+      box-shadow: 0 0 30px rgba(100, 140, 255, 0.1);
+    }
+    .center-label { font-size: 11px; color: #7ca4ff; font-weight: 600; }
+    .center-sublabel { font-size: 8px; color: #445; margin-top: 1px; }
+
+    /* タブバー - 横スクロール対応 */
+    .tab-bar-wrap {
+      max-width: var(--menu-size, 360px);
+      overflow-x: auto;
+      overflow-y: hidden;
+      scrollbar-width: none;
+    }
+    .tab-bar-wrap::-webkit-scrollbar { display: none; }
+    .tab-bar {
+      display: inline-flex;
+      gap: 2px;
+      background: rgba(10, 10, 30, 0.85);
+      border-radius: 8px;
+      padding: 3px;
+      border: 1px solid rgba(100, 140, 255, 0.12);
+      white-space: nowrap;
+    }
+    .tab-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      padding: 3px 7px;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: all 0.15s;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .tab-btn:hover { background: rgba(100, 140, 255, 0.12); }
+    .tab-btn.active {
+      background: rgba(100, 140, 255, 0.25);
+      box-shadow: 0 0 8px rgba(100, 140, 255, 0.15);
+    }
+    .tab-num {
+      font-size: 8px; font-weight: 700;
+      color: rgba(255,255,255,0.25);
+      background: rgba(255,255,255,0.06);
+      width: 14px; height: 14px; border-radius: 3px;
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .tab-btn.active .tab-num { color: #7ca4ff; background: rgba(100, 140, 255, 0.2); }
+    .tab-icon { font-size: 12px; }
+    .tab-name {
+      font-size: 9px; color: rgba(255,255,255,0.35);
+      max-width: 50px; overflow: hidden; text-overflow: ellipsis;
+    }
+    .tab-btn.active .tab-name { color: #9bb8ff; font-weight: 500; }
+
+    .scroll-hint {
+      font-size: 8px; color: rgba(255,255,255,0.15);
+      text-align: center;
+    }
+
+    /* クリップボード履歴パネル - メニューに密着 */
+    .clip-panel {
+      width: var(--clip-width, 155px);
+      background: rgba(10, 10, 30, 0.88);
+      border: 1px solid rgba(100, 140, 255, 0.12);
+      border-left: none;
+      border-radius: 0 10px 10px 0;
+      padding: 6px 0;
+      display: flex;
+      flex-direction: column;
+      margin-left: -4px;
+      max-height: var(--menu-size, 360px);
+      overflow-y: auto;
+      align-self: center;
+    }
+    .clip-panel::-webkit-scrollbar { width: 3px; }
+    .clip-panel::-webkit-scrollbar-thumb { background: rgba(100,140,255,0.2); border-radius: 2px; }
+    .clip-title {
+      font-size: 8px;
+      color: rgba(255,255,255,0.3);
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      padding: 2px 10px 5px;
+      border-bottom: 1px solid rgba(100, 140, 255, 0.08);
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .clip-title-icon { font-size: 10px; }
+    .clip-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 8px;
+      cursor: pointer;
+      transition: all 0.12s;
+      border-left: 2px solid transparent;
+    }
+    .clip-item:hover {
+      background: rgba(100, 140, 255, 0.12);
+      border-left-color: rgba(100, 140, 255, 0.5);
+    }
+    .clip-item-num {
+      font-size: 8px; font-weight: 700;
+      color: rgba(255,255,255,0.2);
+      background: rgba(255,255,255,0.05);
+      width: 16px; height: 16px; border-radius: 3px;
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .clip-item:hover .clip-item-num {
+      color: #7ca4ff;
+      background: rgba(100, 140, 255, 0.15);
+    }
+    .clip-item-text {
+      font-size: 10px;
+      color: rgba(255,255,255,0.5);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      flex: 1;
+      min-width: 0;
+    }
+    .clip-item:hover .clip-item-text { color: rgba(255,255,255,0.85); }
+    .clip-empty {
+      padding: 14px 10px;
+      text-align: center;
+      font-size: 9px;
+      color: rgba(255,255,255,0.15);
+    }
+    .clip-toast {
+      position: fixed;
+      bottom: 16px; left: 50%;
+      transform: translateX(-50%) translateY(10px);
+      background: rgba(100, 140, 255, 0.9);
+      color: #fff;
+      padding: 4px 12px;
+      border-radius: 5px;
+      font-size: 9px;
+      opacity: 0;
+      transition: all 0.25s;
+      pointer-events: none;
+    }
+    .clip-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    /* ===== ライトテーマ ===== */
+    body.light .sector-path {
+      fill: rgba(240, 243, 255, 0.92);
+      stroke: rgba(80, 110, 220, 0.2);
+    }
+    body.light .sector-path:hover, body.light .sector-path.active {
+      fill: rgba(80, 110, 220, 0.15);
+      stroke: rgba(80, 110, 220, 0.5);
+    }
+    body.light .sector-text { color: #556; }
+    body.light .sector-label.highlight .sector-text { color: #334; }
+    body.light .center-circle {
+      background: radial-gradient(circle, rgba(255,255,255,0.97), rgba(240,243,255,0.97));
+      border-color: rgba(80, 110, 220, 0.3);
+      box-shadow: 0 0 30px rgba(80, 110, 220, 0.08);
+    }
+    body.light .center-label { color: #4a6cf7; }
+    body.light .center-sublabel { color: #aab; }
+    body.light .tab-bar {
+      background: rgba(245, 247, 255, 0.95);
+      border-color: rgba(80, 110, 220, 0.15);
+    }
+    body.light .tab-btn:hover { background: rgba(80, 110, 220, 0.08); }
+    body.light .tab-btn.active {
+      background: rgba(80, 110, 220, 0.15);
+      box-shadow: 0 0 8px rgba(80, 110, 220, 0.1);
+    }
+    body.light .tab-num { color: #889; background: rgba(0,0,0,0.04); }
+    body.light .tab-btn.active .tab-num { color: #4a6cf7; background: rgba(74,108,247,0.12); }
+    body.light .tab-name { color: #778; }
+    body.light .tab-btn.active .tab-name { color: #4a6cf7; }
+    body.light .scroll-hint { color: rgba(0,0,0,0.2); }
+    body.light .clip-panel {
+      background: rgba(245, 247, 255, 0.95);
+      border-color: rgba(80, 110, 220, 0.15);
+    }
+    body.light .clip-title { color: #889; border-bottom-color: rgba(80,110,220,0.1); }
+    body.light .clip-item { border-left-color: transparent; }
+    body.light .clip-item:hover {
+      background: rgba(80, 110, 220, 0.08);
+      border-left-color: rgba(80, 110, 220, 0.4);
+    }
+    body.light .clip-item-num { color: #889; background: rgba(0,0,0,0.04); }
+    body.light .clip-item:hover .clip-item-num { color: #4a6cf7; background: rgba(74,108,247,0.1); }
+    body.light .clip-item-text { color: #556; }
+    body.light .clip-item:hover .clip-item-text { color: #223; }
+    body.light .clip-empty { color: rgba(0,0,0,0.2); }
+    body.light .clip-toast { background: rgba(74, 108, 247, 0.9); }
+  </style>
+</head>
+<body>
+  <div class="outer-layout" id="outerLayout">
+    <div class="menu-wrapper">
+      <div class="scroll-hint" id="scrollHint">🖱️ スクロールでタブ切替</div>
+      <div class="tab-bar-wrap"><div class="tab-bar" id="tabBar"></div></div>
+      <div class="menu-container" id="menuContainer">
+        <svg class="radial-svg" id="radialSvg" viewBox="0 0 380 380"></svg>
+        <div class="label-overlay" id="labelOverlay"></div>
+        <div class="center-circle">
+          <div class="center-label" id="centerLabel">共通</div>
+          <div class="center-sublabel">Ring-Link</div>
+        </div>
+      </div>
+    </div>
+    <div class="clip-panel" id="clipPanel">
+      <div class="clip-title"><span class="clip-title-icon">📋</span> CLIPBOARD</div>
+      <div id="clipList"></div>
+    </div>
+  </div>
+  <div class="clip-toast" id="clipToast"></div>
+
+  <script>
+    const CX = 190, CY = 190, INNER_R = 48, OUTER_R = 175, LABEL_R = 115, N = 8;
+    let currentData = null;
+    let activeSector = -1;
+
+    function adjustLayout() {
+      const vw = window.innerWidth, vh = window.innerHeight;
+      const maxByH = vh - 52;
+      const maxByW = vw - 160;
+      const menuSize = Math.max(280, Math.min(maxByH, maxByW, 380));
+      const clipW = Math.max(120, Math.min(160, vw - menuSize - 10));
+      document.documentElement.style.setProperty('--menu-size', menuSize + 'px');
+      document.documentElement.style.setProperty('--clip-width', clipW + 'px');
+    }
+    adjustLayout();
+    window.addEventListener('resize', adjustLayout);
+
+    window.radialHub.menu.onShow(async (data) => {
+      currentData = data;
+      // テーマ適用
+      if (data.theme === 'light') {
+        document.body.classList.add('light');
+      } else {
+        document.body.classList.remove('light');
+      }
+      adjustLayout();
+      render();
+      loadClipboard();
+    });
+
+    async function loadClipboard() {
+      try {
+        const history = await window.radialHub.clipboard.getHistory();
+        renderClipboard(history || []);
+      } catch (e) { renderClipboard([]); }
+    }
+
+    function render() {
+      if (!currentData) return;
+      const { tabs, currentTab } = currentData;
+      const tab = tabs[currentTab] || tabs[0];
+      document.getElementById('centerLabel').textContent = tab.name;
+      renderSectors(tab.items);
+      renderTabBar(tabs, currentTab);
+      document.getElementById('scrollHint').style.display = tabs.length > 1 ? '' : 'none';
+    }
+
+    function renderSectors(items) {
+      const svg = document.getElementById('radialSvg');
+      const overlay = document.getElementById('labelOverlay');
+      svg.innerHTML = '';
+      overlay.innerHTML = '';
+      items.forEach((item, i) => {
+        const startAngle = (i * 360 / N - 90 - 360 / N / 2) * Math.PI / 180;
+        const endAngle = ((i + 1) * 360 / N - 90 - 360 / N / 2) * Math.PI / 180;
+        const midAngle = (startAngle + endAngle) / 2;
+        const x1i = CX + INNER_R * Math.cos(startAngle), y1i = CY + INNER_R * Math.sin(startAngle);
+        const x1o = CX + OUTER_R * Math.cos(startAngle), y1o = CY + OUTER_R * Math.sin(startAngle);
+        const x2i = CX + INNER_R * Math.cos(endAngle), y2i = CY + INNER_R * Math.sin(endAngle);
+        const x2o = CX + OUTER_R * Math.cos(endAngle), y2o = CY + OUTER_R * Math.sin(endAngle);
+        const d = `M ${x1i} ${y1i} L ${x1o} ${y1o} A ${OUTER_R} ${OUTER_R} 0 0 1 ${x2o} ${y2o} L ${x2i} ${y2i} A ${INNER_R} ${INNER_R} 0 0 0 ${x1i} ${y1i} Z`;
+        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        path.setAttribute('d', d);
+        path.setAttribute('class', 'sector-path');
+        path.setAttribute('data-index', i);
+        svg.appendChild(path);
+        const lx = CX + LABEL_R * Math.cos(midAngle);
+        const ly = CY + LABEL_R * Math.sin(midAngle);
+        const label = document.createElement('div');
+        label.className = 'sector-label';
+        label.style.left = lx + 'px';
+        label.style.top = ly + 'px';
+        label.style.transform = 'translate(-50%, -50%)';
+        const iconContent = (item.iconData && item.iconData.startsWith('data:image'))
+          ? `<img src="${item.iconData}">` : item.icon;
+        label.innerHTML = `<span class="sector-icon">${iconContent}</span><span class="sector-text">${item.label}</span>`;
+        overlay.appendChild(label);
+      });
+    }
+
+    function renderTabBar(tabs, current) {
+      const bar = document.getElementById('tabBar');
+      bar.innerHTML = '';
+      tabs.forEach((tab, i) => {
+        const btn = document.createElement('div');
+        btn.className = 'tab-btn' + (i === current ? ' active' : '');
+        btn.innerHTML = `<span class="tab-num">${i + 1}</span><span class="tab-icon">${tab.icon}</span><span class="tab-name">${tab.name}</span>`;
+        btn.onclick = () => window.radialHub.menu.switchTab(i);
+        bar.appendChild(btn);
+      });
+      setTimeout(() => {
+        const active = bar.querySelector('.tab-btn.active');
+        if (active) active.scrollIntoView({ inline: 'center', block: 'nearest' });
+      }, 10);
+    }
+
+    function renderClipboard(history) {
+      const list = document.getElementById('clipList');
+      const items = history.slice(0, 5);
+      if (items.length === 0) { list.innerHTML = '<div class="clip-empty">履歴なし</div>'; return; }
+      list.innerHTML = '';
+      items.forEach((entry, i) => {
+        const text = typeof entry === 'string' ? entry : (entry.text || entry.content || '');
+        if (!text) return;
+        const display = text.replace(/[\r\n]+/g, ' ').substring(0, 14);
+        const full = text.replace(/[\r\n]+/g, ' ');
+        const row = document.createElement('div');
+        row.className = 'clip-item';
+        row.title = full.substring(0, 80);
+        row.innerHTML = `<span class="clip-item-num">${i + 1}</span><span class="clip-item-text">${escapeHtml(display)}</span>`;
+        row.onclick = () => { window.radialHub.clipboard.write(text); showClipToast('📋 コピーしました'); };
+        list.appendChild(row);
+      });
+    }
+
+    function escapeHtml(str) { return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+
+    function showClipToast(msg) {
+      const t = document.getElementById('clipToast');
+      t.textContent = msg;
+      t.classList.add('show');
+      setTimeout(() => t.classList.remove('show'), 1200);
+    }
+
+    document.getElementById('radialSvg').addEventListener('mousemove', (e) => {
+      const svg = document.getElementById('radialSvg');
+      const rect = svg.getBoundingClientRect();
+      const sx = 380 / rect.width, sy = 380 / rect.height;
+      const mx = (e.clientX - rect.left) * sx, my = (e.clientY - rect.top) * sy;
+      const dx = mx - CX, dy = my - CY, dist = Math.sqrt(dx * dx + dy * dy);
+      let newActive = -1;
+      if (dist >= INNER_R && dist <= OUTER_R) {
+        let angle = Math.atan2(dy, dx) * 180 / Math.PI;
+        angle = (angle + 90 + 360 + 360 / N / 2) % 360;
+        newActive = Math.floor(angle / (360 / N));
+        if (newActive >= N) newActive = 0;
+      }
+      if (newActive !== activeSector) {
+        activeSector = newActive;
+        document.querySelectorAll('.sector-path').forEach((p, i) => p.classList.toggle('active', i === activeSector));
+        document.querySelectorAll('.sector-label').forEach((l, i) => l.classList.toggle('highlight', i === activeSector));
+      }
+    });
+
+    document.getElementById('radialSvg').addEventListener('mouseleave', () => {
+      activeSector = -1;
+      document.querySelectorAll('.sector-path').forEach(p => p.classList.remove('active'));
+      document.querySelectorAll('.sector-label').forEach(l => l.classList.remove('highlight'));
+    });
+
+    document.getElementById('radialSvg').addEventListener('click', () => {
+      if (activeSector < 0 || !currentData) return;
+      const tab = currentData.tabs[currentData.currentTab];
+      const item = tab.items[activeSector];
+      if (!item) return;
+      if (item.type === 'launch' && item.target === 'settings') {
+        window.radialHub.settings.open();
+        window.radialHub.menu.hide();
+      } else {
+        window.radialHub.action.execute(item);
+      }
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') window.radialHub.menu.hide();
+      const num = parseInt(e.key);
+      if (num >= 1 && num <= currentData?.tabs?.length) window.radialHub.menu.switchTab(num - 1);
+    });
+
+    let scrollCooldown = false;
+    document.addEventListener('wheel', (e) => {
+      if (!currentData || currentData.tabs.length <= 1) return;
+      if (scrollCooldown) return;
+      scrollCooldown = true;
+      setTimeout(() => { scrollCooldown = false; }, 200);
+      const direction = e.deltaY > 0 ? 1 : -1;
+      const total = currentData.tabs.length;
+      const next = (currentData.currentTab + direction + total) % total;
+      window.radialHub.menu.switchTab(next);
+    }, { passive: true });
+  </script>
+</body>
+</html>
