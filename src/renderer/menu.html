@@ -269,12 +269,61 @@
     body.light .clip-item:hover .clip-item-text { color: #223; }
     body.light .clip-empty { color: rgba(0,0,0,0.2); }
     body.light .clip-toast { background: rgba(74, 108, 247, 0.9); }
+
+    /* ===== ピンクテーマ ===== */
+    body.pink .sector-path {
+      fill: rgba(255, 230, 240, 0.92);
+      stroke: rgba(220, 100, 150, 0.2);
+    }
+    body.pink .sector-path:hover, body.pink .sector-path.active {
+      fill: rgba(220, 100, 150, 0.18);
+      stroke: rgba(220, 100, 150, 0.5);
+    }
+    body.pink .sector-text { color: #886; }
+    body.pink .sector-label.highlight .sector-text { color: #633; }
+    body.pink .center-circle {
+      background: radial-gradient(circle, rgba(255,255,255,0.97), rgba(255,240,245,0.97));
+      border-color: rgba(220, 100, 150, 0.35);
+      box-shadow: 0 0 30px rgba(220, 100, 150, 0.1);
+    }
+    body.pink .center-label { color: #d06090; }
+    body.pink .center-sublabel { color: #bba; }
+    body.pink .tab-bar {
+      background: rgba(255, 245, 248, 0.95);
+      border-color: rgba(220, 100, 150, 0.15);
+    }
+    body.pink .tab-btn:hover { background: rgba(220, 100, 150, 0.1); }
+    body.pink .tab-btn.active {
+      background: rgba(220, 100, 150, 0.18);
+      box-shadow: 0 0 8px rgba(220, 100, 150, 0.12);
+    }
+    body.pink .tab-num { color: #a99; background: rgba(0,0,0,0.04); }
+    body.pink .tab-btn.active .tab-num { color: #d06090; background: rgba(220,100,150,0.15); }
+    body.pink .tab-name { color: #998; }
+    body.pink .tab-btn.active .tab-name { color: #d06090; }
+    body.pink .scroll-hint { color: rgba(0,0,0,0.2); }
+    body.pink .clip-panel {
+      background: rgba(255, 245, 248, 0.95);
+      border-color: rgba(220, 100, 150, 0.15);
+    }
+    body.pink .clip-title { color: #a99; border-bottom-color: rgba(220,100,150,0.1); }
+    body.pink .clip-item { border-left-color: transparent; }
+    body.pink .clip-item:hover {
+      background: rgba(220, 100, 150, 0.1);
+      border-left-color: rgba(220, 100, 150, 0.4);
+    }
+    body.pink .clip-item-num { color: #a99; background: rgba(0,0,0,0.04); }
+    body.pink .clip-item:hover .clip-item-num { color: #d06090; background: rgba(220,100,150,0.12); }
+    body.pink .clip-item-text { color: #665; }
+    body.pink .clip-item:hover .clip-item-text { color: #322; }
+    body.pink .clip-empty { color: rgba(0,0,0,0.2); }
+    body.pink .clip-toast { background: rgba(220, 100, 150, 0.9); }
   </style>
 </head>
 <body>
   <div class="outer-layout" id="outerLayout">
     <div class="menu-wrapper">
-      <div class="scroll-hint" id="scrollHint">🖱️ スクロールでタブ切替</div>
+      <div class="scroll-hint" id="scrollHint" id="scrollHint">🖱️ スクロールでタブ切替</div>
       <div class="tab-bar-wrap"><div class="tab-bar" id="tabBar"></div></div>
       <div class="menu-container" id="menuContainer">
         <svg class="radial-svg" id="radialSvg" viewBox="0 0 380 380"></svg>
@@ -297,6 +346,17 @@
     let currentData = null;
     let activeSector = -1;
 
+    // i18n
+    const MI18N={
+      ja:{scrollHint:'🖱️ スクロールでタブ切替',noHistory:'履歴なし',copied:'📋 コピーしました'},
+      en:{scrollHint:'🖱️ Scroll to switch tabs',noHistory:'No history',copied:'📋 Copied'},
+      fr:{scrollHint:'🖱️ Défiler pour changer',noHistory:'Aucun historique',copied:'📋 Copié'},
+      zh:{scrollHint:'🖱️ 滚动切换标签',noHistory:'无历史',copied:'📋 已复制'}
+    };
+    let menuLang='ja';
+    function mt(key){return (MI18N[menuLang]||MI18N.ja)[key]||MI18N.ja[key]||key;}
+
+
     function adjustLayout() {
       const vw = window.innerWidth, vh = window.innerHeight;
       const maxByH = vh - 52;
@@ -311,12 +371,12 @@
 
     window.radialHub.menu.onShow(async (data) => {
       currentData = data;
+      // 言語適用
+      menuLang = data.language || 'ja';
       // テーマ適用
-      if (data.theme === 'light') {
-        document.body.classList.add('light');
-      } else {
-        document.body.classList.remove('light');
-      }
+      document.body.classList.remove('light', 'pink');
+      if (data.theme === 'light') document.body.classList.add('light');
+      else if (data.theme === 'pink') document.body.classList.add('pink');
       adjustLayout();
       render();
       loadClipboard();
@@ -336,7 +396,7 @@
       document.getElementById('centerLabel').textContent = tab.name;
       renderSectors(tab.items);
       renderTabBar(tabs, currentTab);
-      document.getElementById('scrollHint').style.display = tabs.length > 1 ? '' : 'none';
+      const sh=document.getElementById('scrollHint');sh.textContent=mt('scrollHint');sh.style.display = tabs.length > 1 ? '' : 'none';
     }
 
     function renderSectors(items) {
@@ -391,7 +451,7 @@
     function renderClipboard(history) {
       const list = document.getElementById('clipList');
       const items = history.slice(0, 5);
-      if (items.length === 0) { list.innerHTML = '<div class="clip-empty">履歴なし</div>'; return; }
+      if (items.length === 0) { list.innerHTML = '<div class="clip-empty">'+mt('noHistory')+'</div>'; return; }
       list.innerHTML = '';
       items.forEach((entry, i) => {
         const text = typeof entry === 'string' ? entry : (entry.text || entry.content || '');
@@ -402,7 +462,7 @@
         row.className = 'clip-item';
         row.title = full.substring(0, 80);
         row.innerHTML = `<span class="clip-item-num">${i + 1}</span><span class="clip-item-text">${escapeHtml(display)}</span>`;
-        row.onclick = () => { window.radialHub.clipboard.write(text); showClipToast('📋 コピーしました'); };
+        row.onclick = () => { window.radialHub.clipboard.write(text); showClipToast(mt('copied')); };
         list.appendChild(row);
       });
     }

@@ -163,7 +163,7 @@ function showRadialMenu() {
   mainWindow.webContents.send('menu:show', {
     tabs: config.get('tabs'),
     currentTab: config.get('currentTab') || 0,
-    theme: (config.get('appearance') || {}).theme || 'dark',
+    theme: (config.get('appearance') || {}).theme || 'dark', language: (config.get('appearance') || {}).language || 'ja',
   });
 }
 
@@ -174,31 +174,6 @@ function hideRadialMenu() {
 }
 
 // ===== ホットキー登録 =====
-
-// ホットキー文字列のバリデーション（修飾キーのみは不正）
-function isValidHotkey(hotkey) {
-  if (!hotkey || typeof hotkey !== 'string') return false;
-  const parts = hotkey.split('+').map(s => s.trim());
-  const modifiers = ['Ctrl', 'Control', 'Shift', 'Alt', 'Meta', 'Command', 'Cmd', 'Super'];
-  // 修飾キー以外のキーが最低1つ含まれているか
-  return parts.some(p => !modifiers.includes(p));
-}
-
-// 安全にホットキーを登録（不正な値はスキップ）
-function safeRegister(hotkey, callback) {
-  if (!isValidHotkey(hotkey)) {
-    log.warn('Invalid hotkey skipped:', hotkey);
-    return false;
-  }
-  try {
-    globalShortcut.register(hotkey, callback);
-    return true;
-  } catch (e) {
-    log.error('Failed to register hotkey:', hotkey, e.message);
-    return false;
-  }
-}
-
 function registerHotkeys() {
   // 既存のショートカットを全解除
   globalShortcut.unregisterAll();
@@ -207,7 +182,7 @@ function registerHotkeys() {
 
   // メニュー呼び出し
   if (hotkeys.toggleMenu) {
-    safeRegister(hotkeys.toggleMenu, () => {
+    globalShortcut.register(hotkeys.toggleMenu, () => {
       if (isMenuVisible) {
         hideRadialMenu();
       } else {
@@ -218,7 +193,7 @@ function registerHotkeys() {
 
   // クリップボード履歴
   if (hotkeys.clipboardHistory) {
-    safeRegister(hotkeys.clipboardHistory, () => {
+    globalShortcut.register(hotkeys.clipboardHistory, () => {
       showRadialMenu();
       mainWindow.webContents.send('menu:showClipboard');
     });
@@ -226,35 +201,35 @@ function registerHotkeys() {
 
   // 範囲キャプチャ → クリップボード
   if (hotkeys.screenshotClip) {
-    safeRegister(hotkeys.screenshotClip, () => {
+    globalShortcut.register(hotkeys.screenshotClip, () => {
       startScreenCapture('clipboard');
     });
   }
 
   // 範囲キャプチャ → ファイル保存
   if (hotkeys.screenshotSave) {
-    safeRegister(hotkeys.screenshotSave, () => {
+    globalShortcut.register(hotkeys.screenshotSave, () => {
       startScreenCapture('file');
     });
   }
 
   // 設定画面を開く
   if (hotkeys.openSettings) {
-    safeRegister(hotkeys.openSettings, () => {
+    globalShortcut.register(hotkeys.openSettings, () => {
       createSettingsWindow();
     });
   }
 
   // 次のタブ
   if (hotkeys.nextTab) {
-    safeRegister(hotkeys.nextTab, () => {
+    globalShortcut.register(hotkeys.nextTab, () => {
       switchTab(1);
     });
   }
 
   // 前のタブ
   if (hotkeys.prevTab) {
-    safeRegister(hotkeys.prevTab, () => {
+    globalShortcut.register(hotkeys.prevTab, () => {
       switchTab(-1);
     });
   }
@@ -274,7 +249,7 @@ function switchTab(direction) {
     mainWindow.webContents.send('menu:show', {
       tabs: tabs,
       currentTab: current,
-      theme: (config.get('appearance') || {}).theme || 'dark',
+      theme: (config.get('appearance') || {}).theme || 'dark', language: (config.get('appearance') || {}).language || 'ja',
     });
   }
 }
@@ -421,7 +396,7 @@ function registerIpcHandlers() {
     if (tabIndex >= 0 && tabIndex < tabs.length) {
       config.set('currentTab', tabIndex);
       if (mainWindow) {
-        mainWindow.webContents.send('menu:show', { tabs, currentTab: tabIndex, theme: (config.get('appearance') || {}).theme || 'dark' });
+        mainWindow.webContents.send('menu:show', { tabs, currentTab: tabIndex, theme: (config.get('appearance') || {}).theme || 'dark', language: (config.get('appearance') || {}).language || 'ja' });
       }
     }
   });
