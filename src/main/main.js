@@ -272,23 +272,16 @@ function switchTab(direction) {
 
 // ===== スクリーンキャプチャ（マルチモニター対応） =====
 function startScreenCapture(mode) {
-  // 全ディスプレイの結合領域を計算
-  const displays = screen.getAllDisplays();
-  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-  displays.forEach(d => {
-    minX = Math.min(minX, d.bounds.x);
-    minY = Math.min(minY, d.bounds.y);
-    maxX = Math.max(maxX, d.bounds.x + d.bounds.width);
-    maxY = Math.max(maxY, d.bounds.y + d.bounds.height);
-  });
-  const totalWidth = maxX - minX;
-  const totalHeight = maxY - minY;
+  // カーソル位置のディスプレイを特定（どのモニターからでもキャプチャ可能）
+  const cursorPos = screen.getCursorScreenPoint();
+  const display = screen.getDisplayNearestPoint(cursorPos);
+  const { x, y, width, height } = display.bounds;
 
   captureWindow = new BrowserWindow({
-    x: minX,
-    y: minY,
-    width: totalWidth,
-    height: totalHeight,
+    x: x,
+    y: y,
+    width: width,
+    height: height,
     frame: false,
     transparent: true,
     alwaysOnTop: true,
@@ -297,7 +290,6 @@ function startScreenCapture(mode) {
     resizable: false,
     movable: false,
     hasShadow: false,
-    enableLargerThanScreen: true,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
@@ -305,18 +297,19 @@ function startScreenCapture(mode) {
     }
   });
 
-  // fullscreenではなくsetBoundsで全画面カバー
-  captureWindow.setBounds({ x: minX, y: minY, width: totalWidth, height: totalHeight });
+  captureWindow.setBounds({ x, y, width, height });
   captureWindow.setAlwaysOnTop(true, 'screen-saver');
 
   captureWindow.loadFile(path.join(__dirname, '..', 'renderer', 'capture.html'));
   captureWindow.webContents.on('did-finish-load', () => {
     captureWindow.webContents.send('capture:start', {
       mode,
-      width: totalWidth,
-      height: totalHeight,
-      offsetX: minX,
-      offsetY: minY
+      width,
+      height,
+      displayId: display.id,
+      displayX: x,
+      displayY: y,
+      scaleFactor: display.scaleFactor || 1,
     });
   });
 
@@ -460,15 +453,7 @@ function registerIpcHandlers() {
       return;
     }
     try {
-      const { mode, bounds, offsetX = 0, offsetY = 0 } = data;
-
-      // boundsをグローバル座標に変換（capture windowのオフセット分）
-      const globalBounds = {
-        x: bounds.x + offsetX,
-        y: bounds.y + offsetY,
-        width: bounds.width,
-        height: bounds.height,
-      };
+      const { mode, bounds, displayId, displayX = 0, displayY = 0, scaleFactor = 1 } = data;
 
       // キャプチャウィンドウを先に閉じる（オーバーレイが写らないように）
       if (captureWindow && !captureWindow.isDestroyed()) {
@@ -480,19 +465,19 @@ function registerIpcHandlers() {
       // ウィンドウが完全に消えるのを待つ
       await new Promise(resolve => setTimeout(resolve, 200));
 
-      // 選択範囲の中心がどのディスプレイ上にあるか特定
-      const centerX = globalBounds.x + globalBounds.width / 2;
-      const centerY = globalBounds.y + globalBounds.height / 2;
-      const targetDisplay = screen.getDisplayNearestPoint({ x: centerX, y: centerY });
-      const scaleFactor = targetDisplay.scaleFactor || 1;
+      // キャプチャ対象ディスプレイを特定
+      const allDisplays = screen.getAllDisplays();
+      const targetDisplay = allDisplays.find(d => d.id === displayId) ||
+                            screen.getDisplayNearestPoint({ x: displayX, y: displayY });
+      const sf = targetDisplay.scaleFactor || scaleFactor;
 
-      // desktopCapturerで全画面ソースを取得
+      // desktopCapturerで画面ソースを取得
       const { desktopCapturer } = require('electron');
       const sources = await desktopCapturer.getSources({
         types: ['screen'],
         thumbnailSize: {
-          width: Math.round(targetDisplay.bounds.width * scaleFactor),
-          height: Math.round(targetDisplay.bounds.height * scaleFactor),
+          width: Math.round(targetDisplay.bounds.width * sf),
+          height: Math.round(targetDisplay.bounds.height * sf),
         },
       });
 
@@ -501,18 +486,18 @@ function registerIpcHandlers() {
         return;
       }
 
-      // display_idでマッチするソースを探す（見つからなければ最初のソースを使用）
+      // display_idでマッチするソースを探す
       let source = sources.find(s => String(s.display_id) === String(targetDisplay.id));
       if (!source) source = sources[0];
 
       const fullImage = source.thumbnail;
 
-      // グローバル座標をディスプレイローカル座標に変換して切り抜き
+      // 選択範囲はディスプレイローカル座標そのもの（同一ディスプレイ上で選択）
       const cropped = fullImage.crop({
-        x: Math.round((globalBounds.x - targetDisplay.bounds.x) * scaleFactor),
-        y: Math.round((globalBounds.y - targetDisplay.bounds.y) * scaleFactor),
-        width: Math.round(globalBounds.width * scaleFactor),
-        height: Math.round(globalBounds.height * scaleFactor),
+        x: Math.round(bounds.x * sf),
+        y: Math.round(bounds.y * sf),
+        width: Math.round(bounds.width * sf),
+        height: Math.round(bounds.height * sf),
       });
 
       if (mode === 'clipboard') {
