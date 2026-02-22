@@ -60,13 +60,16 @@
     let captureMode = 'clipboard';
     let isDrawing = false;
     let startX = 0, startY = 0;
+    let captureOffsetX = 0, captureOffsetY = 0;
     const selection = document.getElementById('selection');
     const sizeLabel = document.getElementById('sizeLabel');
     const hint = document.getElementById('hint');
 
-    // メインプロセスからモード受信
+    // メインプロセスからモード受信（マルチモニターオフセット含む）
     window.radialHub.capture.onStart((data) => {
       captureMode = data.mode;
+      captureOffsetX = data.offsetX || 0;
+      captureOffsetY = data.offsetY || 0;
     });
 
     document.addEventListener('mousedown', (e) => {
@@ -113,6 +116,8 @@
         window.radialHub.capture.complete({
           mode: captureMode,
           bounds: { x, y, width: w, height: h },
+          offsetX: captureOffsetX,
+          offsetY: captureOffsetY,
         });
       } else {
         // 範囲が小さすぎる場合はキャンセル扱い

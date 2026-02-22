@@ -178,7 +178,23 @@ function registerHotkeys() {
   // 既存のショートカットを全解除
   globalShortcut.unregisterAll();
 
-  const hotkeys = config.get('hotkeys') || {};
+  // デフォルトホットキー（初回起動時用）
+  const defaultHotkeys = {
+    toggleMenu: 'Ctrl+Space',
+    clipboardHistory: 'Alt+V',
+    screenshotClip: 'Alt+S',
+    screenshotSave: 'Alt+D',
+    openSettings: 'Alt+,',
+    nextTab: 'Alt+]',
+    prevTab: 'Alt+[',
+  };
+
+  let hotkeys = config.get('hotkeys');
+  if (!hotkeys || Object.keys(hotkeys).length === 0) {
+    hotkeys = defaultHotkeys;
+    config.set('hotkeys', hotkeys);
+    log.info('Default hotkeys applied');
+  }
 
   // メニュー呼び出し
   if (hotkeys.toggleMenu) {
@@ -254,23 +270,34 @@ function switchTab(direction) {
   }
 }
 
-// ===== スクリーンキャプチャ =====
+// ===== スクリーンキャプチャ（マルチモニター対応） =====
 function startScreenCapture(mode) {
-  // キャプチャ用のフルスクリーン透明ウィンドウを作成
-  const display = screen.getPrimaryDisplay();
-  const { width, height } = display.bounds;
+  // 全ディスプレイの結合領域を計算
+  const displays = screen.getAllDisplays();
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  displays.forEach(d => {
+    minX = Math.min(minX, d.bounds.x);
+    minY = Math.min(minY, d.bounds.y);
+    maxX = Math.max(maxX, d.bounds.x + d.bounds.width);
+    maxY = Math.max(maxY, d.bounds.y + d.bounds.height);
+  });
+  const totalWidth = maxX - minX;
+  const totalHeight = maxY - minY;
 
   captureWindow = new BrowserWindow({
-    x: 0,
-    y: 0,
-    width: width,
-    height: height,
-    fullscreen: true,
+    x: minX,
+    y: minY,
+    width: totalWidth,
+    height: totalHeight,
     frame: false,
     transparent: true,
     alwaysOnTop: true,
     skipTaskbar: true,
     cursor: 'crosshair',
+    resizable: false,
+    movable: false,
+    hasShadow: false,
+    enableLargerThanScreen: true,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
@@ -278,9 +305,19 @@ function startScreenCapture(mode) {
     }
   });
 
+  // fullscreenではなくsetBoundsで全画面カバー
+  captureWindow.setBounds({ x: minX, y: minY, width: totalWidth, height: totalHeight });
+  captureWindow.setAlwaysOnTop(true, 'screen-saver');
+
   captureWindow.loadFile(path.join(__dirname, '..', 'renderer', 'capture.html'));
   captureWindow.webContents.on('did-finish-load', () => {
-    captureWindow.webContents.send('capture:start', { mode, width, height });
+    captureWindow.webContents.send('capture:start', {
+      mode,
+      width: totalWidth,
+      height: totalHeight,
+      offsetX: minX,
+      offsetY: minY
+    });
   });
 
   // キャプチャ完了のハンドリングはIPC経由
@@ -416,14 +453,22 @@ function registerIpcHandlers() {
     startScreenCapture(mode);
   });
 
-  // キャプチャ完了 - boundsを受け取り、実際に画面をキャプチャ
+  // キャプチャ完了 - boundsを受け取り、実際に画面をキャプチャ（マルチモニター対応）
   ipcMain.on('capture:complete', async (event, data) => {
     if (!data || !data.bounds) {
       log.warn('Capture complete called without bounds');
       return;
     }
     try {
-      const { mode, bounds } = data;
+      const { mode, bounds, offsetX = 0, offsetY = 0 } = data;
+
+      // boundsをグローバル座標に変換（capture windowのオフセット分）
+      const globalBounds = {
+        x: bounds.x + offsetX,
+        y: bounds.y + offsetY,
+        width: bounds.width,
+        height: bounds.height,
+      };
 
       // キャプチャウィンドウを先に閉じる（オーバーレイが写らないように）
       if (captureWindow && !captureWindow.isDestroyed()) {
@@ -435,16 +480,19 @@ function registerIpcHandlers() {
       // ウィンドウが完全に消えるのを待つ
       await new Promise(resolve => setTimeout(resolve, 200));
 
-      const display = screen.getPrimaryDisplay();
-      const scaleFactor = display.scaleFactor || 1;
+      // 選択範囲の中心がどのディスプレイ上にあるか特定
+      const centerX = globalBounds.x + globalBounds.width / 2;
+      const centerY = globalBounds.y + globalBounds.height / 2;
+      const targetDisplay = screen.getDisplayNearestPoint({ x: centerX, y: centerY });
+      const scaleFactor = targetDisplay.scaleFactor || 1;
 
-      // desktopCapturerで画面全体をキャプチャ
+      // desktopCapturerで全画面ソースを取得
       const { desktopCapturer } = require('electron');
       const sources = await desktopCapturer.getSources({
         types: ['screen'],
         thumbnailSize: {
-          width: Math.round(display.bounds.width * scaleFactor),
-          height: Math.round(display.bounds.height * scaleFactor),
+          width: Math.round(targetDisplay.bounds.width * scaleFactor),
+          height: Math.round(targetDisplay.bounds.height * scaleFactor),
         },
       });
 
@@ -453,14 +501,18 @@ function registerIpcHandlers() {
         return;
       }
 
-      const fullImage = sources[0].thumbnail;
+      // display_idでマッチするソースを探す（見つからなければ最初のソースを使用）
+      let source = sources.find(s => String(s.display_id) === String(targetDisplay.id));
+      if (!source) source = sources[0];
 
-      // 選択範囲で切り抜き（スケールファクター考慮）
+      const fullImage = source.thumbnail;
+
+      // グローバル座標をディスプレイローカル座標に変換して切り抜き
       const cropped = fullImage.crop({
-        x: Math.round(bounds.x * scaleFactor),
-        y: Math.round(bounds.y * scaleFactor),
-        width: Math.round(bounds.width * scaleFactor),
-        height: Math.round(bounds.height * scaleFactor),
+        x: Math.round((globalBounds.x - targetDisplay.bounds.x) * scaleFactor),
+        y: Math.round((globalBounds.y - targetDisplay.bounds.y) * scaleFactor),
+        width: Math.round(globalBounds.width * scaleFactor),
+        height: Math.round(globalBounds.height * scaleFactor),
       });
 
       if (mode === 'clipboard') {

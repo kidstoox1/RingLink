@@ -462,7 +462,7 @@
         row.className = 'clip-item';
         row.title = full.substring(0, 80);
         row.innerHTML = `<span class="clip-item-num">${i + 1}</span><span class="clip-item-text">${escapeHtml(display)}</span>`;
-        row.onclick = () => { window.radialHub.clipboard.write(text); showClipToast(mt('copied')); };
+        row.onclick = () => { window.radialHub.clipboard.write(text); showClipToast(mt('copied')); setTimeout(() => window.radialHub.menu.hide(), 400); };
         list.appendChild(row);
       });
     }
