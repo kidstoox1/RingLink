@@ -3,7 +3,7 @@
  * Electronのメインプロセス。ウィンドウ管理、ホットキー、トレイアイコン等を担当。
  */
 
-const { app, BrowserWindow, globalShortcut, Tray, Menu, ipcMain, screen, nativeImage, clipboard } = require('electron');
+const { app, BrowserWindow, globalShortcut, Tray, Menu, ipcMain, screen, nativeImage, clipboard, dialog } = require('electron');
 const path = require('path');
 const ConfigManager = require('./config-manager');
 const ClipboardWatcher = require('./clipboard-watcher');
@@ -71,8 +71,58 @@ app.whenReady().then(async () => {
   // IPC通信ハンドラ登録
   registerIpcHandlers();
 
+  // アップデートノート表示（バージョン変更時）
+  showUpdateNotes();
+
   log.info('Ring-Link ready');
 });
+
+// ===== アップデートノート =====
+function showUpdateNotes() {
+  const currentVersion = app.getVersion();
+  const lastVersion = config.get('lastSeenVersion') || '';
+
+  if (lastVersion === currentVersion) return;
+
+  // バージョン別の更新内容
+  const releaseNotes = {
+    '1.8.0': [
+      '🎯 セクター数を 8 / 12 / 16 個から選択可能に',
+      '👁️ メニュー文字の視認性を大幅改善（テーマ別最適化）',
+      '🖥️ マルチモニター対応スクリーンキャプチャ',
+      '⌨️ デフォルトホットキー設定（Ctrl+Space / Alt系）',
+      '📋 クリップボード選択後メニュー自動非表示',
+    ],
+    '1.7.0': [
+      '🖥️ マルチモニター環境のスクリーンキャプチャを修正',
+      '⌨️ デフォルトホットキー設定（Ctrl+Space / Alt系）',
+      '📋 クリップボード選択後メニュー自動非表示',
+    ],
+  };
+
+  const notes = releaseNotes[currentVersion];
+  if (!notes) {
+    // ノート未定義でもバージョンは保存
+    config.set('lastSeenVersion', currentVersion);
+    return;
+  }
+
+  const message = notes.join('\n');
+
+  // 少し遅延させてウィンドウ生成後に表示
+  setTimeout(() => {
+    dialog.showMessageBox({
+      type: 'info',
+      title: `Ring-Link v${currentVersion} にアップデートされました`,
+      message: `Ring-Link v${currentVersion} の新機能`,
+      detail: message,
+      buttons: ['OK'],
+      icon: nativeImage.createFromPath(path.join(__dirname, '..', '..', 'assets', 'icon.png')).resize({ width: 64, height: 64 }),
+    }).then(() => {
+      config.set('lastSeenVersion', currentVersion);
+    });
+  }, 2000);
+}
 
 // ===== ウィンドウ作成 =====
 function createMainWindow() {
