@@ -40,14 +40,14 @@
 
     .radial-svg { width: 100%; height: 100%; }
     .sector-path {
-      fill: rgba(20, 20, 50, 0.85);
+      fill: rgba(20, 20, 50, 0.93);
       stroke: rgba(100, 140, 255, 0.15);
       stroke-width: 1;
       cursor: pointer;
       transition: fill 0.15s, stroke 0.15s;
     }
     .sector-path:hover, .sector-path.active {
-      fill: rgba(100, 140, 255, 0.25);
+      fill: rgba(100, 140, 255, 0.35);
       stroke: rgba(100, 140, 255, 0.6);
     }
 
@@ -64,11 +64,13 @@
     .sector-label.highlight { transform: translate(-50%, -50%) scale(1.15); }
     .sector-icon { font-size: 26px; filter: drop-shadow(0 0 8px rgba(100, 140, 255, 0.4)); }
     .sector-icon img { width: 30px; height: 30px; object-fit: contain; filter: drop-shadow(0 0 8px rgba(100, 140, 255, 0.4)); }
+    .sector-text-small { font-size: 8px; }
     .sector-text {
       font-size: 10px; color: #888; white-space: nowrap;
-      text-shadow: 0 1px 4px rgba(0,0,0,0.9);
+      text-shadow: 0 1px 6px rgba(0,0,0,1), 0 0 3px rgba(0,0,0,0.8);
     }
-    .sector-label.highlight .sector-text { color: #cde; }
+    .sector-label.highlight .sector-text-small { font-size: 8px; }
+    .sector-text { color: #fff; font-weight: 600; }
 
     .center-circle {
       position: absolute; top: 50%; left: 50%;
@@ -223,15 +225,17 @@
 
     /* ===== ライトテーマ ===== */
     body.light .sector-path {
-      fill: rgba(240, 243, 255, 0.92);
+      fill: rgba(240, 243, 255, 0.96);
       stroke: rgba(80, 110, 220, 0.2);
     }
     body.light .sector-path:hover, body.light .sector-path.active {
-      fill: rgba(80, 110, 220, 0.15);
+      fill: rgba(80, 110, 220, 0.25);
       stroke: rgba(80, 110, 220, 0.5);
     }
-    body.light .sector-text { color: #556; }
-    body.light .sector-label.highlight .sector-text { color: #334; }
+    body.light .sector-text-small { font-size: 8px; }
+    body.light .sector-text { color: #111; font-weight: 600; text-shadow: 0 1px 3px rgba(255,255,255,0.8); }
+    body.light .sector-label.highlight .sector-text-small { font-size: 8px; }
+    body.light .sector-label.highlight .sector-text { color: #000; }
     body.light .center-circle {
       background: radial-gradient(circle, rgba(255,255,255,0.97), rgba(240,243,255,0.97));
       border-color: rgba(80, 110, 220, 0.3);
@@ -272,15 +276,17 @@
 
     /* ===== ピンクテーマ ===== */
     body.pink .sector-path {
-      fill: rgba(255, 230, 240, 0.92);
+      fill: rgba(255, 230, 240, 0.96);
       stroke: rgba(220, 100, 150, 0.2);
     }
     body.pink .sector-path:hover, body.pink .sector-path.active {
-      fill: rgba(220, 100, 150, 0.18);
+      fill: rgba(220, 100, 150, 0.30);
       stroke: rgba(220, 100, 150, 0.5);
     }
-    body.pink .sector-text { color: #886; }
-    body.pink .sector-label.highlight .sector-text { color: #633; }
+    body.pink .sector-text-small { font-size: 8px; }
+    body.pink .sector-text { color: #3a1525; font-weight: 600; text-shadow: 0 1px 3px rgba(255,255,255,0.6); }
+    body.pink .sector-label.highlight .sector-text-small { font-size: 8px; }
+    body.pink .sector-label.highlight .sector-text { color: #1a0510; }
     body.pink .center-circle {
       background: radial-gradient(circle, rgba(255,255,255,0.97), rgba(255,240,245,0.97));
       border-color: rgba(220, 100, 150, 0.35);
@@ -342,7 +348,7 @@
   <div class="clip-toast" id="clipToast"></div>
 
   <script>
-    const CX = 190, CY = 190, INNER_R = 48, OUTER_R = 175, LABEL_R = 115, N = 8;
+    const CX = 190, CY = 190, INNER_R = 48, OUTER_R = 175, LABEL_R = 115; let N = 8;
     let currentData = null;
     let activeSector = -1;
 
@@ -394,7 +400,8 @@
       const { tabs, currentTab } = currentData;
       const tab = tabs[currentTab] || tabs[0];
       document.getElementById('centerLabel').textContent = tab.name;
-      renderSectors(tab.items);
+      N = tab.sectorCount || tab.items.length || 8;
+      renderSectors(tab.items.slice(0, N));
       renderTabBar(tabs, currentTab);
       const sh=document.getElementById('scrollHint');sh.textContent=mt('scrollHint');sh.style.display = tabs.length > 1 ? '' : 'none';
     }
@@ -425,9 +432,14 @@
         label.style.left = lx + 'px';
         label.style.top = ly + 'px';
         label.style.transform = 'translate(-50%, -50%)';
-        const iconContent = (item.iconData && item.iconData.startsWith('data:image'))
-          ? `<img src="${item.iconData}">` : item.icon;
-        label.innerHTML = `<span class="sector-icon">${iconContent}</span><span class="sector-text">${item.label}</span>`;
+        // icon rendering moved below
+        const iconSize = N > 8 ? '20px' : '26px';
+        const textCls = N > 12 ? 'sector-text sector-text-small' : 'sector-text';
+        const imgStyle = N > 8 ? 'width:22px;height:22px;' : 'width:30px;height:30px;';
+        const iconEl = (item.iconData && item.iconData.startsWith('data:image'))
+          ? `<img src="${item.iconData}" style="${imgStyle}object-fit:contain;filter:drop-shadow(0 0 8px rgba(100,140,255,0.4))">` 
+          : `<span style="font-size:${iconSize}">${item.icon}</span>`;
+        label.innerHTML = `<span class="sector-icon">${iconEl}</span><span class="${textCls}">${item.label}</span>`;
         overlay.appendChild(label);
       });
     }
