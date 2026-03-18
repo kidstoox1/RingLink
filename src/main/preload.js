@@ -79,6 +79,12 @@ contextBridge.exposeInMainWorld('radialHub', {
     onProgress: (callback) => ipcRenderer.on('update:progress', (event, progress) => callback(progress)),
   },
 
+  // ===== アプリ情報 =====
+  app: {
+    getVersion: () => ipcRenderer.invoke('app:getVersion'),
+    getReleaseNotes: () => ipcRenderer.invoke('app:getReleaseNotes'),
+  },
+
   // ===== ファイルドロップ（.lnk解決用） =====
   file: {
     resolveDrop: async (filePath) => {

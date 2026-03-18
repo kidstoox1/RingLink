@@ -77,34 +77,40 @@ app.whenReady().then(async () => {
   log.info('Ring-Link ready');
 });
 
+// ===== リリースノート（showUpdateNotes + IPC共用） =====
+const releaseNotes = {
+  '1.9.1': [
+    '📝 設定画面に更新履歴ボタン追加',
+    '🏷️ ヘッダーにバージョン番号を表示（クリックで更新履歴）',
+    '🌐 ウィンドウタイトルの多言語対応',
+    '🔧 アプリ情報API追加（バージョン/リリースノート取得）',
+  ],
+  '1.9.0': [
+    '🔄 パス一括置換機能（設定画面ヘッダーから利用可能）',
+    '🖥️ PC移行やDropboxパス変更時に全スロットのパスを一括置換',
+    '🔍 置換プレビュー機能で事前確認',
+    '🌐 パス置換ボタンの多言語対応（ja/en/fr/zh）',
+  ],
+  '1.8.0': [
+    '🎯 セクター数を 8 / 12 / 16 個から選択可能に',
+    '👁️ メニュー文字の視認性を大幅改善（テーマ別最適化）',
+    '🖥️ マルチモニター対応スクリーンキャプチャ',
+    '⌨️ デフォルトホットキー設定（Ctrl+Space / Alt系）',
+    '📋 クリップボード選択後メニュー自動非表示',
+  ],
+  '1.7.0': [
+    '🖥️ マルチモニター環境のスクリーンキャプチャを修正',
+    '⌨️ デフォルトホットキー設定（Ctrl+Space / Alt系）',
+    '📋 クリップボード選択後メニュー自動非表示',
+  ],
+};
+
 // ===== アップデートノート =====
 function showUpdateNotes() {
   const currentVersion = app.getVersion();
   const lastVersion = config.get('lastSeenVersion') || '';
 
   if (lastVersion === currentVersion) return;
-
-  // バージョン別の更新内容
-  const releaseNotes = {
-    '1.9.0': [
-      '🔄 パス一括置換機能（設定画面ヘッダーから利用可能）',
-      '🖥️ PC移行やDropboxパス変更時に全スロットのパスを一括置換',
-      '🔍 置換プレビュー機能で事前確認',
-      '🌐 パス置換ボタンの多言語対応（ja/en/fr/zh）',
-    ],
-    '1.8.0': [
-      '🎯 セクター数を 8 / 12 / 16 個から選択可能に',
-      '👁️ メニュー文字の視認性を大幅改善（テーマ別最適化）',
-      '🖥️ マルチモニター対応スクリーンキャプチャ',
-      '⌨️ デフォルトホットキー設定（Ctrl+Space / Alt系）',
-      '📋 クリップボード選択後メニュー自動非表示',
-    ],
-    '1.7.0': [
-      '🖥️ マルチモニター環境のスクリーンキャプチャを修正',
-      '⌨️ デフォルトホットキー設定（Ctrl+Space / Alt系）',
-      '📋 クリップボード選択後メニュー自動非表示',
-    ],
-  };
 
   const notes = releaseNotes[currentVersion];
   if (!notes) {
@@ -707,6 +713,15 @@ function registerIpcHandlers() {
     });
     log.info('Auto-launch changed:', enabled);
     return true;
+  });
+
+  // ===== アプリ情報 =====
+  ipcMain.handle('app:getVersion', () => {
+    return app.getVersion();
+  });
+
+  ipcMain.handle('app:getReleaseNotes', () => {
+    return releaseNotes;
   });
 }
 
