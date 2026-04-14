@@ -450,7 +450,8 @@
       tabs.forEach((tab, i) => {
         const btn = document.createElement('div');
         btn.className = 'tab-btn' + (i === current ? ' active' : '');
-        btn.innerHTML = `<span class="tab-num">${i + 1}</span><span class="tab-icon">${tab.icon}</span><span class="tab-name">${tab.name}</span>`;
+        const tabIconHtml = (tab.iconData && tab.iconData.startsWith('data:')) ? `<img src="${tab.iconData}" style="width:16px;height:16px;object-fit:contain;vertical-align:middle">` : tab.icon;
+        btn.innerHTML = `<span class="tab-num">${i + 1}</span><span class="tab-icon">${tabIconHtml}</span><span class="tab-name">${tab.name}</span>`;
         btn.onclick = () => window.radialHub.menu.switchTab(i);
         bar.appendChild(btn);
       });
